@@ -1,0 +1,20 @@
+{
+  "ItemType": "Deployment",
+  "TotalResults": 1,
+  "ItemsPerPage": 1,
+  "NumberOfPages": 1,
+  "LastPageNumber": 0,
+  "IsStale": false,
+  "Items": [
+    {
+      "Id": "Deployments-101",
+      "ReleaseId": "Releases-50",
+      "EnvironmentId": "Environments-1",
+      "ProjectId": "Projects-1",
+      "TaskId": "ServerTasks-3217",
+      "Created": "2026-06-10T09:30:00.000+00:00",
+      "Name": "Deploy to Production",
+      "DeployedBy": "svc-teamcity"
+    }
+  ]
+}

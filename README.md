@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌱 Tendril
+# 🌱 Tendril-Graph
 
 **Trace the tendrils between your repos.**
 
@@ -8,7 +8,7 @@ Tendril-Graph reconstructs the cross-repo dependency graph of a multi-repo estat
 
 <!-- badges: build · coverage · license · npm/pypi — add on first release -->
 
-[Requirements](spec/initial-plan/PRD.md) · [Spec](spec/initial-plan/SPEC.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Previous Context](archive-context/*.md)
+[Requirements](specs/000-initial-plan/PRD.md) · [Spec](specs/000-initial-plan/SPEC.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Previous Context](archive-context/*.md)
 
 </div>
 
@@ -61,7 +61,7 @@ All credentials are **read-only and least-privilege**, supplied via environment 
 
 ## Quickstart
 
-> ⚠️ Interface below is illustrative of the v0 target (see [PRD §10](PRD.md)); commands land as the scaffolding does.
+> ⚠️ Interface below is illustrative of the v0 target (see [PRD §10](specs/000-initial-plan/PRD.md)); commands land as the scaffolding does.
 
 ```bash
 # install (reference distribution)
@@ -91,7 +91,7 @@ Tendril-Graph serve --mcp
 
 ## Provider support matrix
 
-Reference implementations shipped in-tree. Add your own behind the [plugin contract](SPEC.md#4-the-provider-plugin-contract-fr-17).
+Reference implementations shipped in-tree. Add your own behind the [plugin contract](specs/000-initial-plan/SPEC.md#4-the-provider-plugin-contract-fr-17).
 
 
 ### Source (VCS)
@@ -129,11 +129,11 @@ Telemetry is **never required** — Tendril-Graph probes which capabilities are 
 
 ## Extending Tendril
 
-Add a provider without touching core. Implement the relevant interface from [`SPEC.md §4`](SPEC.md#4-the-provider-plugin-contract-fr-17) — `VCSProvider`, `CICDProvider`, `ExtractorPlugin`, `TelemetryProvider`, or `GraphStore` — declare a `tendril-plugin.toml` manifest, and pass the **conformance suite** (the executable definition of the contract). See the plugin developer guide (`docs/plugins.md`, planned).
+Add a provider without touching core. Implement the relevant interface from [`SPEC.md §4`](specs/000-initial-plan/SPEC.md#4-the-provider-plugin-contract-fr-17) — `VCSProvider`, `CICDProvider`, `ExtractorPlugin`, `TelemetryProvider`, or `GraphStore` — declare a `tendril-plugin.toml` manifest, and pass the **conformance suite** (the executable definition of the contract). See the plugin developer guide (`docs/plugins.md`, planned).
 
 ## Status
 
-Pre-release / in design. The requirements (`PRD.md`) and spec (`SPEC.md`) are stable enough to build from; `prompt.md` is the Claude Code handoff that turns them into an implementation plan. Track progress against the phased roadmap in [PRD §10](PRD.md).
+Pre-release / in design. The requirements (`specs/000-initial-plan/PRD.md`) and spec (`specs/000-initial-plan/SPEC.md`) are stable enough to build from; `specs/000-initial-plan/prompt.md` is the Claude Code handoff that turns them into an implementation plan. Track progress against the phased roadmap in [PRD §10](PRD.md).
 
 ## Contributing
 

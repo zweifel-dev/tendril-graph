@@ -2,16 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Tendril-Graph has M0–M4 scaffolding committed (all 7 plugin ABCs, Kùzu store, VCS/CI/CD connectors, attribution engine, extractors, reverse index, resolver, BFS traversal). All 38 tests pass. Read this file every session before touching anything.
+Tendril-Graph has M0–M4 milestones verified. All 68 tests pass. Includes conformance suites for GitHub, Bitbucket DC, TeamCity, and Octopus; rung 4 deploy-log harvesting; and SC-003-exact end-to-end assertions. Read this file every session before touching anything.
 
 ## What Tendril-Graph is
 
 Tendril-Graph reconstructs the **cross-repo dependency graph** of a multi-repo estate from source, CI/CD configuration, and (optionally) runtime telemetry, and serves it to coding agents. Canonical docs, in priority order:
 
-- **`PRD.md`** — product requirements (the what/why).
-- **`SPEC.md`** — technical spec (the how). The provider plugin contract is `SPEC.md §4`.
+- **`specs/000-initial-plan/PRD.md`** — product requirements (the what/why).
+- **`specs/000-initial-plan/SPEC.md`** — technical spec (the how). The provider plugin contract is `SPEC.md §4`.
 - **`docs/architecture.md`** — the canonical Mermaid architecture diagram (committed as source, FR-20).
-- **`prompt.md`** — the one-shot handoff for producing/improving the implementation plan. If you're being asked to plan or critique the spec, follow that.
+- **`specs/000-initial-plan/prompt.md`** — the one-shot handoff for producing/improving the implementation plan. If you're being asked to plan or critique the spec, follow that.
 - **`archive-context/`** — five detailed prior planning sessions (CI/CD attribution, value acquisition, runtime telemetry, deep integration analysis, full PRD/spec review). Consult these for design rationale that is not repeated in the docs above.
 
 When `PRD.md`/`SPEC.md` and code disagree, the docs are the source of truth — update code to match, or flag the doc as wrong; never silently diverge.
@@ -80,3 +80,10 @@ Build the **real v0 vertical slice** end-to-end before breadth: an **ASP.NET Web
 - Don't add write/mutation calls to any provider.
 - Don't persist secret values, or echo them into logs or the graph.
 - Don't reduce the projection join to name-matching, or the global index to an anchor-only walk.
+
+<!-- SPECKIT START -->
+/speckit.specify ➔ /speckit.clarify ➔ /speckit.checklist ➔ /speckit.plan ➔ /speckit.tasks ➔ /speckit.implement
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at specs/001-m0-m4-verify/plan.md
+<!-- SPECKIT END -->

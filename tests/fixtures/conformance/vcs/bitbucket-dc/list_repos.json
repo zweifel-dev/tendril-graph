@@ -1,0 +1,8 @@
+[
+  {
+    "org": "ACME",
+    "name": "webforms-solution",
+    "default_branch": "main",
+    "url": "https://bitbucket.example.com/scm/acme/webforms-solution.git"
+  }
+]

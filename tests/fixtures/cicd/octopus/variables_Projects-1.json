@@ -1,0 +1,189 @@
+{
+  "Id": "variableset-Projects-1",
+  "OwnerId": "Projects-1",
+  "Version": 18,
+  "Variables": [
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "Name": "landing-page-url",
+      "Value": "https://d-ui.prod.example.com",
+      "Description": "Base URL for the embedded landing page SPA (Angular)",
+      "Scope": {
+        "Environment": ["Environments-1"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000002",
+      "Name": "landing-page-url",
+      "Value": "https://d-ui.stg.example.com",
+      "Description": "Base URL for the embedded landing page SPA (Angular)",
+      "Scope": {
+        "Environment": ["Environments-2"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000003",
+      "Name": "api-base-url",
+      "Value": "https://api.prod.example.com",
+      "Description": "Base URL for the BFF API backend",
+      "Scope": {
+        "Environment": ["Environments-1"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000004",
+      "Name": "api-base-url",
+      "Value": "https://api.stg.example.com",
+      "Description": "Base URL for the BFF API backend",
+      "Scope": {
+        "Environment": ["Environments-2"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000005",
+      "Name": "db-connection-string",
+      "Value": null,
+      "Description": "SQL Server connection string for the AcmeDb database",
+      "Scope": {
+        "Environment": ["Environments-1"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "Sensitive",
+      "IsSensitive": true
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000006",
+      "Name": "db-connection-string",
+      "Value": null,
+      "Description": "SQL Server connection string for the AcmeDb database",
+      "Scope": {
+        "Environment": ["Environments-2"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "Sensitive",
+      "IsSensitive": true
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000007",
+      "Name": "analytics-tracking-id",
+      "Value": "UA-12345678-1",
+      "Description": "Google Analytics tracking ID",
+      "Scope": {
+        "Environment": ["Environments-1"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000008",
+      "Name": "analytics-tracking-id",
+      "Value": "",
+      "Description": "Google Analytics tracking ID",
+      "Scope": {
+        "Environment": ["Environments-2"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000009",
+      "Name": "session-timeout-minutes",
+      "Value": "20",
+      "Description": "Session timeout for the WebForms app",
+      "Scope": {
+        "Environment": ["Environments-1"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000010",
+      "Name": "session-timeout-minutes",
+      "Value": "60",
+      "Description": "Session timeout for the WebForms app",
+      "Scope": {
+        "Environment": ["Environments-2"]
+      },
+      "IsEditable": true,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    },
+    {
+      "Id": "a1b2c3d4-0001-4000-8000-000000000011",
+      "Name": "OctopusProjectName",
+      "Value": "WebForms Solution",
+      "Description": "",
+      "Scope": {},
+      "IsEditable": false,
+      "Prompt": null,
+      "Type": "String",
+      "IsSensitive": false
+    }
+  ],
+  "ScopeValues": {
+    "Environments": [
+      {
+        "Id": "Environments-1",
+        "Name": "Production"
+      },
+      {
+        "Id": "Environments-2",
+        "Name": "Staging"
+      }
+    ],
+    "Machines": [],
+    "Actions": [
+      {
+        "Id": "deploy-webapp",
+        "Name": "Deploy WebApp"
+      }
+    ],
+    "Roles": [
+      {
+        "Id": "web-server",
+        "Name": "web-server"
+      }
+    ],
+    "Channels": [
+      {
+        "Id": "Channels-1",
+        "Name": "Default"
+      }
+    ],
+    "TenantTags": [],
+    "Processes": [
+      {
+        "Id": "deploymentprocess-Projects-1",
+        "Name": "Deployment Process"
+      }
+    ]
+  },
+  "Links": {
+    "Self": "/api/Spaces-1/variables/variableset-Projects-1"
+  }
+}

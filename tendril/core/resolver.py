@@ -22,6 +22,16 @@ from tendril.models.ir import (
 log = logging.getLogger(__name__)
 
 
+def _parse_kv_from_logs(lines: list[str], key: str) -> str | None:
+    """Extract a KEY=VALUE pair from deploy log lines (case-insensitive key match)."""
+    pattern = re.compile(rf'^{re.escape(key)}=(.+)', re.IGNORECASE)
+    for line in lines:
+        m = pattern.match(line.strip())
+        if m:
+            return m.group(1).strip()
+    return None
+
+
 class Resolver:
     def __init__(
         self,
@@ -40,6 +50,7 @@ class Resolver:
         ref: str | None = None,
         static_values: dict[str, str] | None = None,
         variable_stores: list[Any] | None = None,
+        deploy_logs: list[str] | None = None,
     ) -> AcquisitionResult:
         """Acquisition ladder (§9) with ref parameter (critique C1 fix).
 
@@ -112,7 +123,19 @@ class Resolver:
                 except Exception:
                     pass
 
-        # Rung 4: Deploy-log harvesting (stub — implemented when log parsing is ready)
+        # Rung 4: Deploy-log harvesting
+        if deploy_logs:
+            log_result = _parse_kv_from_logs(deploy_logs, token.name)
+            if log_result is not None:
+                return AcquisitionResult(
+                    value=log_result,
+                    rung="deploy_log",
+                    evidence=[Evidence(
+                        source_type="deploy-log",
+                        locator=f"deploy-log:{token.name}",
+                    )],
+                    resolved=True,
+                )
 
         return AcquisitionResult(
             value=AcquisitionResult.UNRESOLVED_NO_SOURCE,

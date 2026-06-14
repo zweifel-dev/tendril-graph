@@ -60,6 +60,10 @@ class TraversalEngine:
         self._ref_resolver = ref_resolver
         self._env_canon = env_canonicalizer
         self._read_file = vcs_read_file
+        # Wire env canonicalizer into the deployed-ref resolver so it can
+        # match provider env names ("Production") to canonical forms ("prod").
+        if hasattr(ref_resolver, '_env_canon') and ref_resolver._env_canon is None:
+            ref_resolver._env_canon = env_canonicalizer
 
     def traverse(
         self,
@@ -151,7 +155,25 @@ class TraversalEngine:
 
                         ambiguous = len(candidates) > 1
                         for cand in candidates:
-                            all_evidence = list(consumer_ref.evidence) + list(acquired.evidence) + list(cand.evidence)
+                            # Collect declared_in evidence from ALL TokenDecls
+                            # for this token (not just the first match) so that
+                            # appsettings.prod.json etc. appear in the edge.
+                            all_token_decls = [
+                                t for t in extraction.token_decls
+                                if t.name == token_name
+                            ]
+                            consumer_locs = {e.locator for e in consumer_ref.evidence}
+                            extra_token_evidence = [
+                                t.declared_in for t in all_token_decls
+                                if t.declared_in is not None
+                                and t.declared_in.locator not in consumer_locs
+                            ]
+                            all_evidence = (
+                                list(consumer_ref.evidence)
+                                + extra_token_evidence
+                                + list(acquired.evidence)
+                                + list(cand.evidence)
+                            )
 
                             edge_confidence = _min_confidence(
                                 profile.confidence,
