@@ -1,14 +1,14 @@
-# Tendril — Technical Specification
+# Tendril-Graph — Technical Specification
 
 *Consolidated technical spec. Companion to `PRD.md`. Covers architecture, the provider plugin contract, the resolution pipeline, the graph model, telemetry cross-validation, and the agent surface. Concrete platforms/languages are reference implementations behind the plugin contract (§4).*
 
-**Status:** Draft v1.0 (consolidated)
+**Status:** Draft v1.0
 
 ---
 
 ## 1. Architecture overview
 
-Tendril reconstructs the inter-repo dependency graph from three data planes, with everything platform-specific behind a plugin boundary.
+Tendril-Graph reconstructs the inter-repo dependency graph from three data planes, with everything platform-specific behind a plugin boundary.
 
 ```
         ┌──────────────────────────── PROVIDERS (plugins, §4) ────────────────────────────┐
@@ -54,6 +54,10 @@ Tendril reconstructs the inter-repo dependency graph from three data planes, wit
 
 **Index globally, traverse from the anchor.** Resolving "I call `billing.prod`" requires already knowing who *provides* `billing.prod`, which is not derivable from the anchor. So provider-identity indexing is **global** across the configured scope (cheap, mostly metadata), while consumer **traversal is anchor-bounded**. Index everyone's "I am," walk the anchor's "I call."
 
+**Resolve at the deployed ref, not `main`.** For each environment, config is read from the **exact SHA/branch actually deployed there** — obtained from the deploy plane (the Octopus deployment's release → build → VCS ref) — not from the default branch. The default branch is not what's running; a prod graph built from `HEAD` is subtly wrong wherever prod runs an older ref. The deployed ref is recorded on every edge as evidence. This makes the deploy plane (deploy events / deployed SHA) a *required* truth source, distinct from optional runtime telemetry.
+
+> **v0 reference target & build principle.** The first implementation targets a real, harder-than-cheapest slice: an ASP.NET WebForms (VB + C#) + Angular solution, **built in TeamCity, deployed via Octopus, stored in Bitbucket, with associated repos across both Bitbucket and GitHub.** v0 stands up all seven provider interfaces (§4) as real contracts with **minimal implementations**, so dataflow analysis, LLM judgment, and further providers are added *behind existing seams* — additive, never a core rewrite. Thin but correctly seamed.
+
 ---
 
 ## 2. Domain model (graph schema)
@@ -88,7 +92,7 @@ A service is known by many names; matching on any one is brittle. A canonical `S
 
 ## 4. The Provider Plugin Contract (FR-17)
 
-The extensibility core. **Six plugin families** (five structural, plus an optional advisory `LLMProvider`, §4.7) behind stable, **semantically versioned** interfaces, a normalized IR, capability declaration, registration/discovery, and a **conformance suite** every plugin must pass. A third party adds a provider without modifying core. Interfaces below are language-neutral pseudocode; the reference implementation language (e.g. Python or TypeScript) defines the concrete ABI.
+The extensibility core. **Seven plugin families** (five structural, plus an `IntraRepoProvider` for dataflow facts (§4.8) and an `LLMProvider` for grounded judgment (§4.7)) behind stable, **semantically versioned** interfaces, a normalized IR, capability declaration, registration/discovery, and a **conformance suite** every plugin must pass. A third party adds a provider without modifying core. Interfaces below are language-neutral pseudocode; the reference implementation language (e.g. Python or TypeScript) defines the concrete ABI.
 
 ### 4.1 Shared IR types
 
@@ -169,7 +173,29 @@ neighbors(node, rel?, env?, min_confidence?) -> node[]
 path(from, to, env) -> path
 ```
 
-### 4.7 Registration, capability negotiation, versioning, conformance
+### 4.7 `LLMProvider` (judgment, grounded — §15)
+
+```
+id() -> string                                   # "openai-compatible" | "bedrock" | "ollama" | ...
+capabilities() -> Capabilities                    # { structured_output, tool_calls, max_context }
+complete(req: LLMRequest) -> LLMResponse          # base_url, model, api_key all config (BYOK); temp 0 default
+```
+`LLMRequest` carries a decision-type goal, a required output schema, the **redacted** evidence, and a grounded read-only tool set. The provider is gateway-agnostic; routing/tiering/residency live in core config, not the plugin. Output is always **grounded** (§15.3) before use — the provider never writes to the graph.
+
+### 4.8 `IntraRepoProvider` (dataflow facts — §6, §12)
+
+Supplies the intra-repo static-analysis facts the resolver and LLM ground on: def-use chains, a reference's resolved value or value-set, dataflow paths, and the call graph. **Not a hard dependency** — satisfied three ways: *self-provide* (bundled engine), *reuse/adapt* (consume an existing tool's output), or *absent → degrade* (format-parser extraction + grounded LLM, lower confidence on computed values).
+
+```
+id() -> string                                   # "roslyn" | "joern" | "codegraph-adapter" | "repowise-adapter" | ...
+capabilities() -> Capabilities                    # { languages[], def_use, dataflow, interprocedural, cross_file }
+analyze(repo_ir) -> IntraRepoFacts                # def-use, value-sets, dataflow paths, call graph
+resolve_value(reference) -> ResolvedValue | ValueSet | Unresolved   # backtrack a ref to its computed value(s)
+```
+
+Reference adapters: **Roslyn** (.NET, MIT, first-class C#/VB) and **Joern** (Apache-2.0 CPG, cross-language) for self-provide; **CodeGraph / RepoWise / CodeQL-DB** adapters for reuse. License/coverage trade-offs and the engine-selection rubric: §17.9 and `prompt.md`.
+
+### 4.9 Registration, capability negotiation, versioning, conformance
 
 - **Registration/discovery.** Plugins register via the ecosystem's entry-point mechanism (e.g. Python entry points, npm package convention) plus a `tendril-plugin.toml` manifest declaring `id`, `family`, `contract_version`, and static capabilities. Core discovers and loads by manifest.
 - **Capability negotiation.** Core calls `capabilities()`/`probe()` and routes work to what's actually supported; missing capabilities degrade (NFR-7), never crash.
@@ -195,6 +221,10 @@ Each reference connector implements §4 and normalizes its platform into IR. Rea
 ---
 
 ## 6. Extractor reference implementations
+
+Extraction spans a **spectrum of static analysis**, not just config parsing. From cheapest to most capable: format parsers (literal config) → **AST parsing** (Roslyn for .NET, tree-sitter elsewhere) → **def-use / symbol resolution** (backtrack a reference to its definition) → **data-flow / taint analysis with constant propagation** (follow a value through computation; fold constant-derived strings) → **abstract interpretation** (enumerate the *set* of possible values under branching, e.g. `region=="eu" ? euUrl : usUrl` → `{euUrl, usUrl}`, often tying each branch to its environment condition). Reuse a code-property-graph engine (CodeQL / Semgrep dataflow / Joern) rather than building one per language.
+
+**The ceiling (be honest about it):** exact value recovery across arbitrary code is undecidable (Rice's theorem), so this layer is always an approximation. It **cannot** resolve dynamic/external values (DB-sourced, reflection, DI-by-convention, `$(external-command)` output), cross-language/cross-process value flow, or *intent* (is this string a dependency or a log URL?). Those cases escalate to grounded LLM judgment (§15) or are observed via the acquisition ladder (§9). **Per-repo backtracking is intra-repo dataflow and is consumed across the §12 boundary**, not reimplemented here; this layer focuses on what crosses the repo edge.
 
 Per-ecosystem plugins producing consumer/provider/token projections:
 
@@ -241,6 +271,8 @@ Tokens are evaluated per environment against the store the attribution profile s
 
 **Secret floor.** Secret-typed values are masked in the UI, the API, **and logs** — so no rung recovers them. A genuinely secret-hidden value is emitted as `unresolved-secret` + evidence, for human review or runtime cross-fill (§11). Prefer rungs 3–4 ("let the platform resolve, read the answer") over re-emulating scoping or driving a browser.
 
+**Logic-based pipelines.** Build/deploy pipelines that compute parameters via embedded shell/PowerShell/Groovy with conditionals, loops, or `$(external-command)` output are **not statically evaluated** — that is undecidable in the general case. They resolve via rungs 3–4 (preview API / deploy-log harvest = read the value the pipeline actually emitted), or, for the declarative/constant-folded portions, via §6 analysis. Imperative pipeline logic is an *observe-the-result* problem, not a *static-evaluation* problem.
+
 ```
 acquire(T, repo R, env E):
     for rung in [static, store_api, preview_api, deploy_log, browser, runtime]:
@@ -273,6 +305,8 @@ while queue not empty:
 
 Cycles handled via the `expanded` set (edges still recorded); per-environment inner loop; confidence inherits the weakest link; traversal anchor-bounded while the index is global.
 
+The pseudo-code above is the **structured-mode** path. By default (hybrid/agentic modes) the per-node step is not a fixed extractor sweep but an **LLM evaluation loop**: the model reads the repo's full evidence (source/API calls, configs, build, CI/CD, hosting), proposes the outward edges and the traversal frontier, and each proposal is **grounded** against the reverse index/connectors before it is trusted. The deterministic extractors, index, and acquisition ladder become the *tools the loop calls* and the *grounding that verifies it*. See §15.
+
 ---
 
 ## 11. Telemetry cross-validation (optional plane)
@@ -291,7 +325,7 @@ The third row **fills the secret floor at the edge level without reading a secre
 
 ## 12. Intra-repo boundary
 
-Tendril owns inter-repo/per-env edges; intra-repo structure is delegated. Each `Repo` carries `HAS_INTERNAL_GRAPH {tool, locator}`. Agent flow: query Tendril for "anchor `DEPENDS_ON` billing @prod via `/charges`" → follow the handoff into the repo's intra-repo graph (RepoWise/CodeGraph) to find the handler. The inter-repo edge lands on the repo boundary; the intra-repo tool resolves below it. No duplication.
+Tendril-Graph owns inter-repo/per-env edges; intra-repo structure is delegated to an **`IntraRepoProvider`** (§4.8). This includes **intra-repo def-use and dataflow** — backtracking a reference to its definition or computed value *within* a repo. The provider is **not a hard prerequisite**: Tendril-Graph can *self-provide* (run a bundled engine — Roslyn for .NET, Joern for cross-language), *reuse* an existing tool's output via an adapter (CodeGraph, RepoWise, CodeQL DB) to avoid double-analysis, or *degrade* when none is available (format-parser extraction + grounded LLM, at lower confidence on computed values). Tendril-Graph **consumes** these facts and does the inter-repo join + cross-boundary stitching, escalating to grounded LLM judgment (§15) where they run out. Each `Repo` carries `HAS_INTERNAL_GRAPH {tool, locator}`. Agent flow: query Tendril-Graph for "anchor `DEPENDS_ON` billing @prod via `/charges`" → follow the handoff into the repo's intra-repo graph to find the handler. The inter-repo edge lands on the repo boundary; the intra-repo provider resolves below it. No duplication.
 
 ---
 
@@ -299,14 +333,14 @@ Tendril owns inter-repo/per-env edges; intra-repo structure is delegated. Each `
 
 **Store:** a property graph (embedded **Kùzu** for low-ops, or **Neo4j**) behind the `GraphStore` plugin; schema §2 maps 1:1.
 
-**Query layer + MCP server.** Tendril exposes its own MCP server for agents (alongside the platforms' MCPs). Tools:
+**Query layer + MCP server.** Tendril-Graph exposes its own MCP server for agents (alongside the platforms' MCPs). Tools:
 - `find_relevant_repos(task_or_seeds, env?, max_hops?, min_confidence?) → ranked repos + why`
 - `impact_analysis(repo|endpoint, env, min_confidence?) → downstream consumers + evidence`
 - `dependency_path(from, to, env) → path with per-edge confidence`
 - `env_diff(repo, env_a, env_b) → added/removed/changed edges`
 - `explain_edge(edge_id) → full evidence + provenance chain`
 
-Every response carries confidence and provenance (`declared`/`injected`/`observed`) so agents filter and weight accordingly.
+Every response carries confidence and provenance (`declared`/`injected`/`observed`/`llm-judged`), **the deployed ref it was computed from**, and an explicit **unknowns** section — unresolved references, ungrounded candidates, and coverage gaps for the queried scope. A consumer must be able to distinguish *"no dependency"* from *"could not determine"*; the contract never implies completeness it doesn't have. Queries accept a `min_confidence` filter, and `impact_analysis` defaults to **recall-favoring** behavior (a missed downstream consumer is more dangerous than a flagged unknown) — it returns the unknowns alongside the resolved set rather than silently omitting them.
 
 ---
 
@@ -317,7 +351,58 @@ Every response carries confidence and provenance (`declared`/`injected`/`observe
 
 ---
 
-## 15. Worked example (illustrative of the mechanism)
+## 15. LLM judgment & the evaluation loop (grounded, BYOK)
+
+The decisions at the heart of construction — *interpret a repo to find everything it reaches outside itself; decide whether a reference matches a provider; decide what to evaluate next* — are judgment, not pattern-matching. Tendril-Graph treats them as **LLM-driven, grounded by deterministic verification**. The split: **the LLM supplies judgment and interpretation; deterministic tools supply grounding, resolution, and bookkeeping.** The LLM proposes; the tools confirm; nothing ungrounded is trusted.
+
+### 15.1 Run modes
+
+- **structured** — deterministic static analysis only (AST + def-use + dataflow + abstract interpretation, §6). Cheap, fully reproducible, and genuinely capable on backtracking, value-flow, and branch enumeration — but **bounded by the §6 ceiling** (no dynamic/external values, no cross-language/cross-process stitching, no intent classification). Good for clean codebases and reproducibility-critical runs; not a full substitute on a messy estate.
+- **agentic** — an LLM evaluates each node across all evidence; highest recall on messy/heterogeneous estates.
+- **hybrid (default)** — deterministic extractors fast-path the structured majority; the LLM handles interpretation of unstructured config, ambiguous matches, and the traversal-frontier decision. Configurable per run and per repo.
+
+### 15.2 The evaluation loop (per node)
+
+At each repo the agent receives the repo's evidence (source/API calls, configs, build, CI/CD, hosting) and **read-only, grounded tools**, and pursues three prompt goals: (1) **enumerate outward references** — every API, host, queue, service, or artifact the repo reaches outside itself, each with an evidence locator; (2) **resolve/ground each** to a provider repo via tools, or mark unresolved; (3) **propose the frontier** — which discovered repos to evaluate next.
+
+```
+evaluate(repo, env):
+    evidence = gather(repo)                      # files, build, CI/CD, hosting (via connectors)
+    proposal = LLM.judge(goal=EVALUATE_REPO, evidence,
+                         tools=[index.lookup, acquire, get_context, list_envs])
+    for cand in proposal.references:
+        target = ground(cand)                    # verify against reverse index / connectors
+        if target.grounded:
+            edge(repo → target, env,
+                 provenance = (declared|injected) + llm-judged,
+                 confidence = match_class(target),         # grounded → real confidence
+                 evidence   = [cand.evidence, target.evidence, llm.trace_id])
+        else:
+            flag(cand, UNRESOLVED, confidence=low)         # ungrounded → low + flagged
+    enqueue(proposal.frontier ∩ grounded_targets)
+```
+
+### 15.3 Grounding is the trust anchor
+
+A proposed edge is promoted only when it **grounds**: the proposed provider identity actually exists in the reverse index (or a connector confirms the deploy target/host) and the evidence locator resolves. Grounded → confidence by identity class (§3); ungrounded → low confidence, flagged, never silently kept. This is what stops LLM judgment from hallucinating edges — **judgment is the model's; truth is the index's.**
+
+### 15.4 BYOK, models, and locations (`LLMProvider`, §4.7)
+
+LLM access is a plugin, **OpenAI-compatible-gateway-first** — `base_url`, `model`, and `api_key` are all config, so it drives LiteLLM, vLLM, Ollama, Azure/Bedrock-via-gateway, or a frontier API equally. The router supports **per-decision model tiering** (cheap/local for env-name canonicalization; stronger for identity arbitration and whole-repo evaluation), **data-residency routing** (source-reading tasks pin to in-VPC/self-hosted endpoints; nothing forces proprietary source to a third-party API), and **BYOK** brokered like every other credential. **structured mode runs with no LLM at all** for adopters who can't or won't.
+
+### 15.5 Tools, hooks, and prompt contracts
+
+Every LLM call is wrapped: a **pre-hook** (redaction + residency gate — strip secret-typed values, refuse non-approved endpoints for sensitive tasks); **grounded read-only tools** (`reverse_index.lookup`, `get_context`, `acquire`, `list_environments`) so the model retrieves rather than guesses; a **prompt goal** per decision type (a narrow contract: the task, a required JSON output schema, an explicit *abstain-if-unsure* rule); a **post-hook** (grounding/validation before anything is recorded); and **caching + recorded reasoning** (temperature 0; prompt + response + grounding outcome recorded as the edge's evidence).
+
+### 15.6 Reproducibility & auditability under judgment
+
+Pure determinism is not claimed once judgment is in the loop, but reproducibility and auditability are preserved: **temperature 0 + caching** make re-runs reproduce from recorded decisions; **recorded reasoning traces + grounding evidence** make every edge explain itself; **provenance** marks LLM-influenced edges `llm-judged` and caps their confidence unless grounded. An auditor sees what the model proposed, what grounded it, and why it was (or wasn't) trusted. (This is the basis for the revised NFR-5 in `PRD.md`: "reproducible and grounded," not "purely deterministic.")
+
+### 15.7 Evidence retrieval (the model pulls facts, it isn't handed the repo)
+
+The agent does **not** ingest whole repos into context — that doesn't scale and breaks residency/cost. It **pulls** evidence through tools: read this config file, fetch this CI/CD step, and — critically — **request the §6 dataflow facts** for a reference (its def-use chain, its resolved value or value-set, its branch conditions) from the intra-repo graph (§12). So the model reasons over *program-analysis facts*, not raw source: this grounds it (the facts are deterministically derived), shrinks its job (it judges intent and stitches boundaries rather than re-deriving value flow), and bounds what proprietary code ever reaches a model (residency). The division of labor: **dataflow says what a value *is*; the model says what it *means* and what to do next.**
+
+## 16. Worked example (illustrative of the mechanism)
 
 > Stack is illustrative, not assumed — it exercises every hard case at once.
 
@@ -325,7 +410,7 @@ Every response carries confidence and provenance (`declared`/`injected`/`observe
 
 ---
 
-## 16. Open questions
+## 17. Open questions
 
 1. **Deploy-step detection coverage** — maintain a catalog of deploy-action signatures; unknown mechanisms degrade to "build owner only." Maintenance vs. flag-and-review policy.
 2. **Octopus without Config-as-Code** — repo→project link is indirect (artifact provenance); confirm reliability or require a mapping table.
@@ -335,3 +420,5 @@ Every response carries confidence and provenance (`declared`/`injected`/`observe
 6. **Async edges** (queue/topic) — phase in v1 or later? Often the *missed* dependencies.
 7. **Confidence calibration** — needs a hand-labeled golden estate; telemetry provides a partial golden source.
 8. **Plugin ABI language** — settle the reference language (Python vs. TypeScript) for the conformance suite and the first community providers.
+9. **Dataflow/CPG engine (`IntraRepoProvider`)** — reuse vs. build, with license as the hard gate (must run on adopters' proprietary code). Grounded findings: **CodeQL** has deep dataflow but its engine **cannot run on closed-source code without a paid GitHub Advanced Security license** → excluded as a bundled default. **Joern** is Apache-2.0 and CPG-based but **C#/.NET is not first-class** (core: C/C++/Java/JS/Python/Kotlin). **Roslyn** (MIT) is the natural .NET engine. **Semgrep CE** is LGPL-2.1 but **intraprocedural only** (cross-file dataflow is Pro/paid, or the Opengrep fork). Likely answer: Roslyn (.NET) + Joern (cross-language) behind the provider, with reuse-adapters for existing tools and a degrade path. Full rubric in `prompt.md`.
+10. **Cross-language / cross-process stitching** — value flow that crosses a shell→.NET→JS boundary is the hard residue no single dataflow engine covers. Confirm the approach: grounded LLM stitching over per-language facts, runtime observation (telemetry/logs), or both, with explicit confidence penalties for stitched edges.

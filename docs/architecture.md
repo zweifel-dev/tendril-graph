@@ -1,10 +1,10 @@
-# Tendril — Architecture
+# Tendril-Graph — Architecture
 
 The canonical architecture diagram, committed as source (FR-20). Renders on GitHub. See `SPEC.md` for the component detail and `PRD.md` for requirements.
 
 ## Three planes, one plugin boundary
 
-Tendril reconstructs the inter-repo dependency graph from three data planes — **source**, **build/deploy**, and (optional) **runtime** — with everything platform-specific behind the provider plugin contract (`SPEC.md §4`).
+Tendril-Graph reconstructs the inter-repo dependency graph from three data planes — **source**, **build/deploy**, and (optional) **runtime** — with everything platform-specific behind the provider plugin contract (`SPEC.md §4`).
 
 ```mermaid
 flowchart TB

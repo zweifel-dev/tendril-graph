@@ -1,12 +1,12 @@
 # Contributing to Tendril
 
-Thanks for your interest. Tendril reconstructs the cross-repo dependency graph of a multi-repo estate and serves it to coding agents. The most valuable contributions are **new provider plugins** (more VCS, CI/CD, telemetry, language extractors) and improvements to resolution accuracy — both of which the plugin contract is designed to make possible without touching core.
+Thanks for your interest. Tendril-Graph reconstructs the cross-repo dependency graph of a multi-repo estate and serves it to coding agents. The most valuable contributions are **new provider plugins** (more VCS, CI/CD, telemetry, language extractors) and improvements to resolution accuracy — both of which the plugin contract is designed to make possible without touching core.
 
 ## Before you start
 
 Read these, in order — they are the source of truth:
 
-- **[`PRD.md`](PRD.md)** — what Tendril is and why.
+- **[`PRD.md`](PRD.md)** — what Tendril-Graph is and why.
 - **[`SPEC.md`](SPEC.md)** — how it works; the plugin contract is §4.
 - **[`CLAUDE.md`](CLAUDE.md)** — the non-negotiable invariants (these apply to humans too).
 - **[`docs/architecture.md`](docs/architecture.md)** — the picture.
@@ -77,7 +77,7 @@ Tendril's entire value is that it **never fabricates an edge or a value** and is
 
 ## Security
 
-Tendril holds read credentials to source and CI/CD systems and maps an organization's topology, so security issues are taken seriously. **Do not open a public issue for a vulnerability.** Report it privately per `SECURITY.md` (planned) or to the maintainers. Never commit credentials or real secret values, including in fixtures — scrub fixtures of anything sensitive.
+Tendril-Graph holds read credentials to source and CI/CD systems and maps an organization's topology, so security issues are taken seriously. **Do not open a public issue for a vulnerability.** Report it privately per `SECURITY.md` (planned) or to the maintainers. Never commit credentials or real secret values, including in fixtures — scrub fixtures of anything sensitive.
 
 ## License
 
