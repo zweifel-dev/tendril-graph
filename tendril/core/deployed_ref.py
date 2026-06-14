@@ -15,9 +15,14 @@ log = logging.getLogger(__name__)
 
 
 class DeployedRefResolver:
-    def __init__(self, cicd_providers: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        cicd_providers: dict[str, Any] | None = None,
+        env_canonicalizer: Any = None,
+    ) -> None:
         self._providers = cicd_providers or {}
         self._cache: dict[str, DeployedRef] = {}
+        self._env_canon = env_canonicalizer
 
     def resolve(
         self,
@@ -29,15 +34,18 @@ class DeployedRefResolver:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
+        # Try deployment records if provided — works even if attribution did not
+        # identify the deploy owner (graceful degradation, §4 invariant 5).
+        if deployments:
+            ref = self._resolve_from_deployments(deployments, env)
+            if ref:
+                self._cache[cache_key] = ref
+                return ref
+
         deploy_owner = profile.deploy_owner
         if not deploy_owner:
-            log.warning("No deploy owner for %s — cannot resolve deployed ref", cache_key)
+            log.debug("No deploy owner for %s and no matching deployment record", cache_key)
             return None
-
-        ref = self._resolve_from_deployments(deployments or [], env)
-        if ref:
-            self._cache[cache_key] = ref
-            return ref
 
         log.info("Could not resolve deployed ref for %s", cache_key)
         return None
@@ -49,7 +57,13 @@ class DeployedRefResolver:
     ) -> DeployedRef | None:
         for deploy in deployments:
             deploy_env = deploy.get("EnvironmentName", deploy.get("environment", ""))
-            if deploy_env.lower() != env.lower():
+            # Canonicalize the deployment env name if a canonicalizer is available
+            # so "Production" matches canonical "prod".
+            if self._env_canon:
+                norm_deploy_env, _ = self._env_canon.canonicalize(deploy_env)
+            else:
+                norm_deploy_env = deploy_env.lower()
+            if norm_deploy_env.lower() != env.lower():
                 continue
 
             release = deploy.get("Release", deploy.get("release", {}))

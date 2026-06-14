@@ -1,0 +1,13 @@
+{
+  "count": 1,
+  "href": "/app/rest/vcs-roots",
+  "vcs-root": [
+    {
+      "id": "AcmeWebApp_WebformsSolution",
+      "name": "webforms-solution",
+      "vcsName": "jetbrains.git",
+      "href": "/app/rest/vcs-roots/id:AcmeWebApp_WebformsSolution",
+      "url": "https://bitbucket.example.com/scm/acme/webforms-solution.git"
+    }
+  ]
+}

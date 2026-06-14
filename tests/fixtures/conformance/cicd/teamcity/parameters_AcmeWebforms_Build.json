@@ -1,0 +1,15 @@
+{
+  "count": 2,
+  "property": [
+    {
+      "name": "deploy.target.url",
+      "value": "https://d-ui.prod.example.com",
+      "type": {}
+    },
+    {
+      "name": "env.DB_PASSWORD",
+      "value": null,
+      "type": {"rawValue": "password"}
+    }
+  ]
+}

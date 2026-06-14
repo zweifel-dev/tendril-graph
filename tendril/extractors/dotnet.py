@@ -159,6 +159,14 @@ def _classify_string_value(
             token_decls.append(TokenDecl(
                 name=token_name, declared_in=evidence, injected=True,
             ))
+    elif _key_looks_like_url(key) and value:
+        # Literal URL in a URL-named key — emit a TokenDecl so this config
+        # location appears in downstream evidence (e.g. appsettings.prod.json).
+        token_decls.append(TokenDecl(
+            name=_camel_to_kebab(key),
+            declared_in=evidence,
+            injected=False,
+        ))
 
     if URL_PATTERN.search(value) or tokens:
         kind = _infer_kind(lower_key)
@@ -178,6 +186,18 @@ def _classify_string_value(
                 env_hint=env_hint,
                 evidence=[evidence],
             ))
+
+
+def _camel_to_kebab(s: str) -> str:
+    """Convert CamelCase / PascalCase key to kebab-case token name."""
+    s = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1-\2', s)
+    s = re.sub(r'([a-z\d])([A-Z])', r'\1-\2', s)
+    return s.lower()
+
+
+def _key_looks_like_url(key: str) -> bool:
+    lower = key.lower()
+    return any(k in lower for k in ("url", "endpoint", "address", "host", "baseurl", "serviceurl"))
 
 
 def _infer_kind(key_lower: str) -> ConsumerRefKind:

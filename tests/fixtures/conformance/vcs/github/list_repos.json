@@ -1,0 +1,8 @@
+[
+  {
+    "org": "acme",
+    "name": "landing-page-ui",
+    "default_branch": "main",
+    "url": "https://github.com/acme/landing-page-ui.git"
+  }
+]

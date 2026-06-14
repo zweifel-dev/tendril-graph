@@ -244,19 +244,18 @@ class TestEndToEnd:
             f"Got edges: {[(e.from_id, e.to_id, e.env) for e in result.edges]}"
         )
 
-        # Verify provenance
-        assert target_edge.provenance in (Provenance.INJECTED, Provenance.DECLARED)
-
-        # Verify confidence
-        assert target_edge.confidence in (Confidence.HIGH, Confidence.MEDIUM)
-
-        # Verify evidence chain is non-empty
-        assert len(target_edge.evidence) > 0
-
-        # Verify deployed ref is recorded
-        assert target_edge.deployed_ref
-
-        # Verify the edge is not ambiguous
+        # SC-003 exact assertions
+        assert target_edge.from_id == "bitbucket-dc:acme/webforms-solution"
+        assert target_edge.to_id == "github:acme/landing-page-ui"
+        assert target_edge.env == "prod"
+        assert target_edge.provenance == Provenance.INJECTED
+        assert target_edge.confidence == Confidence.HIGH
+        assert target_edge.deployed_ref == "abc123def456"
+        assert len(target_edge.evidence) >= 3, (
+            f"Expected ≥3 evidence items, got {len(target_edge.evidence)}: "
+            f"{[e.locator for e in target_edge.evidence]}"
+        )
+        assert target_edge.unknowns == []
         assert target_edge.ambiguous is False
 
     def test_deployed_ref_resolved(self) -> None:
@@ -373,6 +372,31 @@ class TestEndToEnd:
         assert rows[0]["b.name"] == "landing-page-ui"
         assert rows[0]["r.confidence"] == "high"
         assert rows[0]["r.deployed_ref"] == "abc123def456"
+
+    def test_rung4_parses_kv_from_logs(self) -> None:
+        """Rung 4 extracts KEY=VALUE from deploy log lines (case-insensitive)."""
+        from tendril.models.ir import CICDProfile, CICDProviderEntry, TokenDecl
+
+        resolver = Resolver()
+        profile = CICDProfile(
+            repo=ANCHOR,
+            environments=["prod"],
+            providers=[CICDProviderEntry(provider_id="octopus", roles=["deploy"])],
+        )
+        token = TokenDecl(name="landing-page-url")
+        result = resolver.acquire(
+            token=token,
+            repo=ANCHOR,
+            env="prod",
+            profile=profile,
+            deploy_logs=[
+                "landing-page-url=https://d-ui.prod.example.com",
+                "other-var=some-value",
+            ],
+        )
+        assert result.resolved, f"Expected resolved, got rung={result.rung}"
+        assert result.value == "https://d-ui.prod.example.com"
+        assert result.rung == "deploy_log"
 
     def test_environment_canonicalization(self) -> None:
         """Verify 'Production' maps to 'prod' for Octopus→internal join."""

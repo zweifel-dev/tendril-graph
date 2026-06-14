@@ -1,0 +1,13 @@
+{
+  "count": 1,
+  "href": "/app/rest/buildTypes",
+  "buildType": [
+    {
+      "id": "AcmeWebforms_Build",
+      "name": "Build",
+      "projectName": "Acme :: WebForms Solution",
+      "projectId": "AcmeWebforms",
+      "href": "/app/rest/buildTypes/id:AcmeWebforms_Build"
+    }
+  ]
+}
