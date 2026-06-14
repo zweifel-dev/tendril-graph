@@ -1,0 +1,396 @@
+{
+  "ItemType": "Deployment",
+  "TotalResults": 4,
+  "ItemsPerPage": 30,
+  "NumberOfPages": 1,
+  "LastPageNumber": 0,
+  "IsStale": false,
+  "Items": [
+    {
+      "Id": "Deployments-101",
+      "ReleaseId": "Releases-50",
+      "EnvironmentId": "Environments-1",
+      "TenantId": null,
+      "ForcePackageDownload": false,
+      "ForcePackageRedeployment": false,
+      "SkipActions": [],
+      "SpecificMachineIds": [],
+      "ExcludedMachineIds": [],
+      "DeploymentProcessId": "deploymentprocess-Projects-1",
+      "ManifestVariableSetId": "variableset-Deployments-101",
+      "TaskId": "ServerTasks-3217",
+      "ProjectId": "Projects-1",
+      "ChannelId": "Channels-1",
+      "UseGuidedFailure": false,
+      "Comments": "Scheduled production release 1.0.847",
+      "FormValues": {},
+      "QueueTime": null,
+      "QueueTimeExpiry": null,
+      "Name": "Deploy to Production",
+      "Created": "2026-06-10T09:30:00.000+00:00",
+      "SpaceId": "Spaces-1",
+      "TentacleRetentionPeriod": null,
+      "DeployedBy": "svc-teamcity",
+      "DeployedById": "Users-21",
+      "FailureEncountered": false,
+      "DeployedToMachineIds": [
+        "Machines-1",
+        "Machines-2"
+      ],
+      "Release": {
+        "Id": "Releases-50",
+        "Assembled": "2026-06-10T09:14:22.437+00:00",
+        "ReleaseNotes": "Release 1.0.847 — updated dashboard iframe integration",
+        "Version": "1.0.847",
+        "ChannelId": "Channels-1",
+        "ProjectId": "Projects-1",
+        "ProjectVariableSetSnapshotId": "variablesnapshot-Projects-1-s-18",
+        "LibraryVariableSetSnapshotIds": [
+          "variablesnapshot-LibraryVariableSets-1-s-4"
+        ],
+        "SelectedPackages": [
+          {
+            "ActionName": "Deploy WebApp",
+            "PackageReferenceName": "",
+            "Version": "1.0.847"
+          }
+        ],
+        "ProjectDeploymentProcessSnapshotId": "deploymentprocess-Projects-1-s-12",
+        "BuildInformation": [
+          {
+            "PackageId": "Acme.WebApp",
+            "Version": "1.0.847",
+            "BuildEnvironment": "TeamCity",
+            "BuildNumber": "847",
+            "BuildUrl": "https://tc.example.com/viewLog.html?buildId=54821&buildTypeId=AcmeWebforms_Deploy",
+            "Branch": "main",
+            "VcsType": "Git",
+            "VcsRoot": "https://bitbucket.internal.acmecorp.com/scm/acme/webforms-solution.git",
+            "VcsCommitNumber": "abc123def456789abcdef0123456789abcdef012",
+            "VcsCommitUrl": "https://bitbucket.internal.acmecorp.com/projects/ACME/repos/webforms-solution/commits/abc123def456789abcdef0123456789abcdef012",
+            "Commits": [
+              {
+                "Id": "abc123def456789abcdef0123456789abcdef012",
+                "LinkUrl": "https://bitbucket.internal.acmecorp.com/projects/ACME/repos/webforms-solution/commits/abc123def456789abcdef0123456789abcdef012",
+                "Comment": "Update iframe src token replacement for dashboard UI"
+              },
+              {
+                "Id": "9876543210fedcba9876543210fedcba98765432",
+                "LinkUrl": "https://bitbucket.internal.acmecorp.com/projects/ACME/repos/webforms-solution/commits/9876543210fedcba9876543210fedcba98765432",
+                "Comment": "Fix session timeout configuration for prod"
+              }
+            ],
+            "WorkItems": [],
+            "Created": "2026-06-10T09:10:05.221+00:00"
+          }
+        ],
+        "SpaceId": "Spaces-1",
+        "Links": {
+          "Self": "/api/Spaces-1/releases/Releases-50",
+          "Project": "/api/Spaces-1/projects/Projects-1",
+          "Deployments": "/api/Spaces-1/releases/Releases-50/deployments{?skip,take}",
+          "Web": "/app#/Spaces-1/releases/Releases-50"
+        }
+      },
+      "Links": {
+        "Self": "/api/Spaces-1/deployments/Deployments-101",
+        "Release": "/api/Spaces-1/releases/Releases-50",
+        "Environment": "/api/Spaces-1/environments/Environments-1",
+        "Project": "/api/Spaces-1/projects/Projects-1",
+        "Task": "/api/Spaces-1/tasks/ServerTasks-3217",
+        "Web": "/app#/Spaces-1/deployments/Deployments-101",
+        "Artifacts": "/api/Spaces-1/artifacts?regarding=Deployments-101",
+        "Interruptions": "/api/Spaces-1/interruptions?regarding=Deployments-101",
+        "DeploymentProcess": "/api/Spaces-1/deploymentprocesses/deploymentprocess-Projects-1-s-12",
+        "Variables": "/api/Spaces-1/variables/variableset-Deployments-101"
+      }
+    },
+    {
+      "Id": "Deployments-100",
+      "ReleaseId": "Releases-51",
+      "EnvironmentId": "Environments-2",
+      "TenantId": null,
+      "ForcePackageDownload": false,
+      "ForcePackageRedeployment": false,
+      "SkipActions": [],
+      "SpecificMachineIds": [],
+      "ExcludedMachineIds": [],
+      "DeploymentProcessId": "deploymentprocess-Projects-1",
+      "ManifestVariableSetId": "variableset-Deployments-100",
+      "TaskId": "ServerTasks-3218",
+      "ProjectId": "Projects-1",
+      "ChannelId": "Channels-1",
+      "UseGuidedFailure": false,
+      "Comments": "RC deployment to staging for next release",
+      "FormValues": {},
+      "QueueTime": null,
+      "QueueTimeExpiry": null,
+      "Name": "Deploy to Staging",
+      "Created": "2026-06-11T08:15:00.000+00:00",
+      "SpaceId": "Spaces-1",
+      "TentacleRetentionPeriod": null,
+      "DeployedBy": "svc-teamcity",
+      "DeployedById": "Users-21",
+      "FailureEncountered": false,
+      "DeployedToMachineIds": [
+        "Machines-3"
+      ],
+      "Release": {
+        "Id": "Releases-51",
+        "Assembled": "2026-06-11T08:02:14.882+00:00",
+        "ReleaseNotes": "Release candidate 1.0.848-rc.1",
+        "Version": "1.0.848-rc.1",
+        "ChannelId": "Channels-1",
+        "ProjectId": "Projects-1",
+        "ProjectVariableSetSnapshotId": "variablesnapshot-Projects-1-s-18",
+        "LibraryVariableSetSnapshotIds": [
+          "variablesnapshot-LibraryVariableSets-1-s-4"
+        ],
+        "SelectedPackages": [
+          {
+            "ActionName": "Deploy WebApp",
+            "PackageReferenceName": "",
+            "Version": "1.0.848-rc.1"
+          }
+        ],
+        "ProjectDeploymentProcessSnapshotId": "deploymentprocess-Projects-1-s-12",
+        "BuildInformation": [
+          {
+            "PackageId": "Acme.WebApp",
+            "Version": "1.0.848-rc.1",
+            "BuildEnvironment": "TeamCity",
+            "BuildNumber": "848",
+            "BuildUrl": "https://tc.example.com/viewLog.html?buildId=54835&buildTypeId=AcmeWebforms_Deploy",
+            "Branch": "feature/new-dashboard-widgets",
+            "VcsType": "Git",
+            "VcsRoot": "https://bitbucket.internal.acmecorp.com/scm/acme/webforms-solution.git",
+            "VcsCommitNumber": "def789abc0123456789abcdef0123456789abcdef",
+            "VcsCommitUrl": "https://bitbucket.internal.acmecorp.com/projects/ACME/repos/webforms-solution/commits/def789abc0123456789abcdef0123456789abcdef",
+            "Commits": [
+              {
+                "Id": "def789abc0123456789abcdef0123456789abcdef",
+                "LinkUrl": "https://bitbucket.internal.acmecorp.com/projects/ACME/repos/webforms-solution/commits/def789abc0123456789abcdef0123456789abcdef",
+                "Comment": "Add new dashboard widget panel layout"
+              }
+            ],
+            "WorkItems": [],
+            "Created": "2026-06-11T07:55:41.003+00:00"
+          }
+        ],
+        "SpaceId": "Spaces-1",
+        "Links": {
+          "Self": "/api/Spaces-1/releases/Releases-51",
+          "Project": "/api/Spaces-1/projects/Projects-1",
+          "Deployments": "/api/Spaces-1/releases/Releases-51/deployments{?skip,take}",
+          "Web": "/app#/Spaces-1/releases/Releases-51"
+        }
+      },
+      "Links": {
+        "Self": "/api/Spaces-1/deployments/Deployments-100",
+        "Release": "/api/Spaces-1/releases/Releases-51",
+        "Environment": "/api/Spaces-1/environments/Environments-2",
+        "Project": "/api/Spaces-1/projects/Projects-1",
+        "Task": "/api/Spaces-1/tasks/ServerTasks-3218",
+        "Web": "/app#/Spaces-1/deployments/Deployments-100",
+        "Artifacts": "/api/Spaces-1/artifacts?regarding=Deployments-100",
+        "Interruptions": "/api/Spaces-1/interruptions?regarding=Deployments-100",
+        "DeploymentProcess": "/api/Spaces-1/deploymentprocesses/deploymentprocess-Projects-1-s-12",
+        "Variables": "/api/Spaces-1/variables/variableset-Deployments-100"
+      }
+    },
+    {
+      "Id": "Deployments-99",
+      "ReleaseId": "Releases-45",
+      "EnvironmentId": "Environments-1",
+      "TenantId": null,
+      "ForcePackageDownload": false,
+      "ForcePackageRedeployment": false,
+      "SkipActions": [],
+      "SpecificMachineIds": [],
+      "ExcludedMachineIds": [],
+      "DeploymentProcessId": "deploymentprocess-Projects-2",
+      "ManifestVariableSetId": "variableset-Deployments-99",
+      "TaskId": "ServerTasks-3215",
+      "ProjectId": "Projects-2",
+      "ChannelId": "Channels-2",
+      "UseGuidedFailure": false,
+      "Comments": "API release 1.0.312 to production",
+      "FormValues": {},
+      "QueueTime": null,
+      "QueueTimeExpiry": null,
+      "Name": "Deploy to Production",
+      "Created": "2026-06-09T16:45:00.000+00:00",
+      "SpaceId": "Spaces-1",
+      "TentacleRetentionPeriod": null,
+      "DeployedBy": "svc-github-actions",
+      "DeployedById": "Users-22",
+      "FailureEncountered": false,
+      "DeployedToMachineIds": [
+        "Machines-4",
+        "Machines-5"
+      ],
+      "Release": {
+        "Id": "Releases-45",
+        "Assembled": "2026-06-09T16:42:08.112+00:00",
+        "ReleaseNotes": "Release 1.0.312 — CORS update and health endpoint",
+        "Version": "1.0.312",
+        "ChannelId": "Channels-2",
+        "ProjectId": "Projects-2",
+        "ProjectVariableSetSnapshotId": "variablesnapshot-Projects-2-s-7",
+        "LibraryVariableSetSnapshotIds": [
+          "variablesnapshot-LibraryVariableSets-1-s-4"
+        ],
+        "SelectedPackages": [
+          {
+            "ActionName": "Deploy API",
+            "PackageReferenceName": "",
+            "Version": "1.0.312"
+          }
+        ],
+        "ProjectDeploymentProcessSnapshotId": "deploymentprocess-Projects-2-s-5",
+        "BuildInformation": [
+          {
+            "PackageId": "Acme.LandingPage.Api",
+            "Version": "1.0.312",
+            "BuildEnvironment": "GitHubActions",
+            "BuildNumber": "312",
+            "BuildUrl": "https://github.com/acme-corp/landing-page-api/actions/runs/9876543210",
+            "Branch": "main",
+            "VcsType": "Git",
+            "VcsRoot": "https://github.com/acme-corp/landing-page-api.git",
+            "VcsCommitNumber": "fedcba9876543210fedcba9876543210fedcba98",
+            "VcsCommitUrl": "https://github.com/acme-corp/landing-page-api/commit/fedcba9876543210fedcba9876543210fedcba98",
+            "Commits": [
+              {
+                "Id": "fedcba9876543210fedcba9876543210fedcba98",
+                "LinkUrl": "https://github.com/acme-corp/landing-page-api/commit/fedcba9876543210fedcba9876543210fedcba98",
+                "Comment": "Update CORS allowed origins and add health check endpoint"
+              }
+            ],
+            "WorkItems": [],
+            "Created": "2026-06-09T16:38:22.558+00:00"
+          }
+        ],
+        "SpaceId": "Spaces-1",
+        "Links": {
+          "Self": "/api/Spaces-1/releases/Releases-45",
+          "Project": "/api/Spaces-1/projects/Projects-2",
+          "Deployments": "/api/Spaces-1/releases/Releases-45/deployments{?skip,take}",
+          "Web": "/app#/Spaces-1/releases/Releases-45"
+        }
+      },
+      "Links": {
+        "Self": "/api/Spaces-1/deployments/Deployments-99",
+        "Release": "/api/Spaces-1/releases/Releases-45",
+        "Environment": "/api/Spaces-1/environments/Environments-1",
+        "Project": "/api/Spaces-1/projects/Projects-2",
+        "Task": "/api/Spaces-1/tasks/ServerTasks-3215",
+        "Web": "/app#/Spaces-1/deployments/Deployments-99",
+        "Artifacts": "/api/Spaces-1/artifacts?regarding=Deployments-99",
+        "Interruptions": "/api/Spaces-1/interruptions?regarding=Deployments-99",
+        "DeploymentProcess": "/api/Spaces-1/deploymentprocesses/deploymentprocess-Projects-2-s-5",
+        "Variables": "/api/Spaces-1/variables/variableset-Deployments-99"
+      }
+    },
+    {
+      "Id": "Deployments-98",
+      "ReleaseId": "Releases-46",
+      "EnvironmentId": "Environments-2",
+      "TenantId": null,
+      "ForcePackageDownload": false,
+      "ForcePackageRedeployment": false,
+      "SkipActions": [],
+      "SpecificMachineIds": [],
+      "ExcludedMachineIds": [],
+      "DeploymentProcessId": "deploymentprocess-Projects-2",
+      "ManifestVariableSetId": "variableset-Deployments-98",
+      "TaskId": "ServerTasks-3216",
+      "ProjectId": "Projects-2",
+      "ChannelId": "Channels-2",
+      "UseGuidedFailure": false,
+      "Comments": "API staging deployment for testing",
+      "FormValues": {},
+      "QueueTime": null,
+      "QueueTimeExpiry": null,
+      "Name": "Deploy to Staging",
+      "Created": "2026-06-12T11:20:00.000+00:00",
+      "SpaceId": "Spaces-1",
+      "TentacleRetentionPeriod": null,
+      "DeployedBy": "svc-github-actions",
+      "DeployedById": "Users-22",
+      "FailureEncountered": false,
+      "DeployedToMachineIds": [
+        "Machines-6"
+      ],
+      "Release": {
+        "Id": "Releases-46",
+        "Assembled": "2026-06-12T11:15:33.440+00:00",
+        "ReleaseNotes": "Release candidate 1.0.313-rc.1",
+        "Version": "1.0.313-rc.1",
+        "ChannelId": "Channels-2",
+        "ProjectId": "Projects-2",
+        "ProjectVariableSetSnapshotId": "variablesnapshot-Projects-2-s-7",
+        "LibraryVariableSetSnapshotIds": [
+          "variablesnapshot-LibraryVariableSets-1-s-4"
+        ],
+        "SelectedPackages": [
+          {
+            "ActionName": "Deploy API",
+            "PackageReferenceName": "",
+            "Version": "1.0.313-rc.1"
+          }
+        ],
+        "ProjectDeploymentProcessSnapshotId": "deploymentprocess-Projects-2-s-5",
+        "BuildInformation": [
+          {
+            "PackageId": "Acme.LandingPage.Api",
+            "Version": "1.0.313-rc.1",
+            "BuildEnvironment": "GitHubActions",
+            "BuildNumber": "313",
+            "BuildUrl": "https://github.com/acme-corp/landing-page-api/actions/runs/9876543211",
+            "Branch": "feature/add-export-endpoint",
+            "VcsType": "Git",
+            "VcsRoot": "https://github.com/acme-corp/landing-page-api.git",
+            "VcsCommitNumber": "aabbccdd1122334455667788aabbccdd11223344",
+            "VcsCommitUrl": "https://github.com/acme-corp/landing-page-api/commit/aabbccdd1122334455667788aabbccdd11223344",
+            "Commits": [
+              {
+                "Id": "aabbccdd1122334455667788aabbccdd11223344",
+                "LinkUrl": "https://github.com/acme-corp/landing-page-api/commit/aabbccdd1122334455667788aabbccdd11223344",
+                "Comment": "Add export endpoint for dashboard data"
+              }
+            ],
+            "WorkItems": [],
+            "Created": "2026-06-12T11:12:08.891+00:00"
+          }
+        ],
+        "SpaceId": "Spaces-1",
+        "Links": {
+          "Self": "/api/Spaces-1/releases/Releases-46",
+          "Project": "/api/Spaces-1/projects/Projects-2",
+          "Deployments": "/api/Spaces-1/releases/Releases-46/deployments{?skip,take}",
+          "Web": "/app#/Spaces-1/releases/Releases-46"
+        }
+      },
+      "Links": {
+        "Self": "/api/Spaces-1/deployments/Deployments-98",
+        "Release": "/api/Spaces-1/releases/Releases-46",
+        "Environment": "/api/Spaces-1/environments/Environments-2",
+        "Project": "/api/Spaces-1/projects/Projects-2",
+        "Task": "/api/Spaces-1/tasks/ServerTasks-3216",
+        "Web": "/app#/Spaces-1/deployments/Deployments-98",
+        "Artifacts": "/api/Spaces-1/artifacts?regarding=Deployments-98",
+        "Interruptions": "/api/Spaces-1/interruptions?regarding=Deployments-98",
+        "DeploymentProcess": "/api/Spaces-1/deploymentprocesses/deploymentprocess-Projects-2-s-5",
+        "Variables": "/api/Spaces-1/variables/variableset-Deployments-98"
+      }
+    }
+  ],
+  "Links": {
+    "Self": "/api/Spaces-1/deployments?skip=0&take=30",
+    "Template": "/api/Spaces-1/deployments{?skip,take,ids,projects,environments,tenants,channels,taskState}",
+    "Page.All": "/api/Spaces-1/deployments?skip=0&take=2147483647",
+    "Page.Current": "/api/Spaces-1/deployments?skip=0&take=30",
+    "Page.Last": "/api/Spaces-1/deployments?skip=0&take=30"
+  }
+}

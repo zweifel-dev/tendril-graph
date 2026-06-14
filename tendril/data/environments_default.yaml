@@ -1,0 +1,28 @@
+# Default environment alias map.
+# Adopters extend this in their tendril.toml or a custom file.
+# Case-folding is applied automatically; no need to list case variants.
+
+environments:
+  prod:
+    aliases:
+      - production
+      - prd
+      - live
+      - release
+  staging:
+    aliases:
+      - stage
+      - stg
+      - uat
+      - pre-prod
+      - preprod
+  dev:
+    aliases:
+      - development
+      - develop
+      - sandbox
+  test:
+    aliases:
+      - testing
+      - qa
+      - quality

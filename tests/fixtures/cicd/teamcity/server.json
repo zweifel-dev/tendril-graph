@@ -1,0 +1,13 @@
+{
+  "version": "2024.03.3 (build 156396)",
+  "versionMajor": 2024,
+  "versionMinor": 3,
+  "startTime": "20260601T060000+0000",
+  "currentTime": "20260614T103042+0000",
+  "buildNumber": "156396",
+  "buildDate": "20240315T000000+0000",
+  "internalId": "a1b2c3d4-e5f6-7890-abcd-000000000001",
+  "superUserToken": null,
+  "webUrl": "https://teamcity.internal.acmecorp.com",
+  "href": "/app/rest/server"
+}

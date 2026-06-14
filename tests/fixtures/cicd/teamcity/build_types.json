@@ -1,0 +1,292 @@
+{
+  "count": 2,
+  "href": "/app/rest/buildTypes",
+  "buildType": [
+    {
+      "id": "AcmeWebforms_Build",
+      "name": "Build",
+      "description": "Build the WebForms solution",
+      "projectName": "Acme :: WebForms Solution",
+      "projectId": "AcmeWebforms",
+      "href": "/app/rest/buildTypes/id:AcmeWebforms_Build",
+      "webUrl": "https://tc.example.com/viewType.html?buildTypeId=AcmeWebforms_Build",
+      "paused": false,
+      "project": {
+        "id": "AcmeWebforms",
+        "name": "Acme :: WebForms Solution",
+        "parentProjectId": "_Root",
+        "href": "/app/rest/projects/id:AcmeWebforms",
+        "webUrl": "https://tc.example.com/project/AcmeWebforms"
+      },
+      "vcs-root-entries": {
+        "count": 1,
+        "vcs-root-entry": [
+          {
+            "id": "AcmeWebforms_WebformsSolutionVcs",
+            "checkout-rules": "",
+            "vcs-root": {
+              "id": "AcmeWebforms_WebformsSolutionVcs",
+              "name": "webforms-solution",
+              "href": "/app/rest/vcs-roots/id:AcmeWebforms_WebformsSolutionVcs"
+            }
+          }
+        ]
+      },
+      "settings": {
+        "count": 4,
+        "property": [
+          {
+            "name": "artifactRules",
+            "value": "Web/bin/Release/** => WebApp.%build.number%.zip"
+          },
+          {
+            "name": "buildNumberCounter",
+            "value": "847"
+          },
+          {
+            "name": "buildNumberPattern",
+            "value": "1.0.%build.counter%"
+          },
+          {
+            "name": "checkoutMode",
+            "value": "ON_AGENT"
+          }
+        ]
+      },
+      "parameters": {
+        "count": 3,
+        "href": "/app/rest/buildTypes/id:AcmeWebforms_Build/parameters",
+        "property": [
+          {
+            "name": "system.Configuration",
+            "value": "Release",
+            "type": {
+              "rawValue": "text"
+            }
+          },
+          {
+            "name": "system.SolutionFile",
+            "value": "WebApp.sln",
+            "type": {
+              "rawValue": "text"
+            }
+          },
+          {
+            "name": "octopus.server.url",
+            "value": "https://octopus.internal.acmecorp.com",
+            "type": {
+              "rawValue": "text"
+            }
+          }
+        ]
+      },
+      "steps": {
+        "count": 2,
+        "step": [
+          {
+            "id": "nuget_installer",
+            "name": "NuGet Restore",
+            "type": "jb.nuget.installer",
+            "properties": {
+              "count": 2,
+              "property": [
+                {
+                  "name": "nuget.path",
+                  "value": "%teamcity.tool.NuGet.CommandLine.6.4.0%"
+                },
+                {
+                  "name": "sln.path",
+                  "value": "WebApp.sln"
+                }
+              ]
+            }
+          },
+          {
+            "id": "msbuild",
+            "name": "Build Solution",
+            "type": "MSBuild",
+            "properties": {
+              "count": 4,
+              "property": [
+                {
+                  "name": "build-file-path",
+                  "value": "WebApp.sln"
+                },
+                {
+                  "name": "msbuild_version",
+                  "value": "17.0"
+                },
+                {
+                  "name": "toolsVersion",
+                  "value": "17.0"
+                },
+                {
+                  "name": "runnerArgs",
+                  "value": "/p:Configuration=%system.Configuration% /p:DeployOnBuild=false"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "triggers": {
+        "count": 1,
+        "trigger": [
+          {
+            "id": "vcsTrigger",
+            "type": "vcsTrigger",
+            "properties": {
+              "count": 1,
+              "property": [
+                {
+                  "name": "branchFilter",
+                  "value": "+:*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "AcmeWebforms_Deploy",
+      "name": "OctoPack & Push",
+      "description": "Package and push to Octopus Deploy feed",
+      "projectName": "Acme :: WebForms Solution",
+      "projectId": "AcmeWebforms",
+      "href": "/app/rest/buildTypes/id:AcmeWebforms_Deploy",
+      "webUrl": "https://tc.example.com/viewType.html?buildTypeId=AcmeWebforms_Deploy",
+      "paused": false,
+      "project": {
+        "id": "AcmeWebforms",
+        "name": "Acme :: WebForms Solution",
+        "parentProjectId": "_Root",
+        "href": "/app/rest/projects/id:AcmeWebforms",
+        "webUrl": "https://tc.example.com/project/AcmeWebforms"
+      },
+      "vcs-root-entries": {
+        "count": 0,
+        "vcs-root-entry": []
+      },
+      "settings": {
+        "count": 3,
+        "property": [
+          {
+            "name": "artifactRules",
+            "value": "*.nupkg"
+          },
+          {
+            "name": "buildNumberCounter",
+            "value": "847"
+          },
+          {
+            "name": "buildNumberPattern",
+            "value": "1.0.%build.counter%"
+          }
+        ]
+      },
+      "parameters": {
+        "count": 2,
+        "href": "/app/rest/buildTypes/id:AcmeWebforms_Deploy/parameters",
+        "property": [
+          {
+            "name": "octopus.server.url",
+            "value": "https://octopus.internal.acmecorp.com",
+            "type": {
+              "rawValue": "text"
+            }
+          },
+          {
+            "name": "octopus.api.key",
+            "value": null,
+            "type": {
+              "rawValue": "password display='hidden'"
+            }
+          }
+        ]
+      },
+      "snapshot-dependencies": {
+        "count": 1,
+        "snapshot-dependency": [
+          {
+            "id": "AcmeWebforms_Build",
+            "type": "snapshot_dependency",
+            "source-buildType": {
+              "id": "AcmeWebforms_Build",
+              "name": "Build",
+              "href": "/app/rest/buildTypes/id:AcmeWebforms_Build"
+            }
+          }
+        ]
+      },
+      "artifact-dependencies": {
+        "count": 1,
+        "artifact-dependency": [
+          {
+            "id": "AcmeWebforms_Build_artifact",
+            "type": "artifact_dependency",
+            "source-buildType": {
+              "id": "AcmeWebforms_Build",
+              "name": "Build",
+              "href": "/app/rest/buildTypes/id:AcmeWebforms_Build"
+            },
+            "properties": {
+              "count": 2,
+              "property": [
+                {
+                  "name": "pathRules",
+                  "value": "WebApp.%build.number%.zip => ."
+                },
+                {
+                  "name": "revisionName",
+                  "value": "sameChainOrLastFinished"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "steps": {
+        "count": 2,
+        "step": [
+          {
+            "id": "octopus_pack",
+            "name": "Octopus Pack",
+            "type": "octopus.pack",
+            "properties": {
+              "count": 2,
+              "property": [
+                {
+                  "name": "octopus_packageid",
+                  "value": "Acme.WebApp"
+                },
+                {
+                  "name": "octopus_packageversion",
+                  "value": "%build.number%"
+                }
+              ]
+            }
+          },
+          {
+            "id": "octopus_push",
+            "name": "Octopus Push",
+            "type": "octopus.push",
+            "properties": {
+              "count": 2,
+              "property": [
+                {
+                  "name": "octopus_host",
+                  "value": "%octopus.server.url%"
+                },
+                {
+                  "name": "octopus_apikey",
+                  "value": "%octopus.api.key%"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

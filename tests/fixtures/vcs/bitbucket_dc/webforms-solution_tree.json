@@ -1,0 +1,184 @@
+{
+  "path": {
+    "components": [],
+    "name": "",
+    "toString": ""
+  },
+  "revision": "main",
+  "children": {
+    "size": 14,
+    "limit": 500,
+    "isLastPage": true,
+    "values": [
+      {
+        "path": {
+          "components": [".teamcity"],
+          "parent": "",
+          "name": ".teamcity",
+          "extension": "",
+          "toString": ".teamcity"
+        },
+        "contentId": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+        "type": "DIRECTORY",
+        "size": 0
+      },
+      {
+        "path": {
+          "components": [".teamcity", "settings.kts"],
+          "parent": ".teamcity",
+          "name": "settings.kts",
+          "extension": "kts",
+          "toString": ".teamcity/settings.kts"
+        },
+        "contentId": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+        "type": "FILE",
+        "size": 1842
+      },
+      {
+        "path": {
+          "components": ["Web"],
+          "parent": "",
+          "name": "Web",
+          "extension": "",
+          "toString": "Web"
+        },
+        "contentId": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+        "type": "DIRECTORY",
+        "size": 0
+      },
+      {
+        "path": {
+          "components": ["Web", "Pages"],
+          "parent": "Web",
+          "name": "Pages",
+          "extension": "",
+          "toString": "Web/Pages"
+        },
+        "contentId": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+        "type": "DIRECTORY",
+        "size": 0
+      },
+      {
+        "path": {
+          "components": ["Web", "Pages", "home.aspx"],
+          "parent": "Web/Pages",
+          "name": "home.aspx",
+          "extension": "aspx",
+          "toString": "Web/Pages/home.aspx"
+        },
+        "contentId": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+        "type": "FILE",
+        "size": 3472
+      },
+      {
+        "path": {
+          "components": ["Web", "Pages", "home.aspx.vb"],
+          "parent": "Web/Pages",
+          "name": "home.aspx.vb",
+          "extension": "vb",
+          "toString": "Web/Pages/home.aspx.vb"
+        },
+        "contentId": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+        "type": "FILE",
+        "size": 1856
+      },
+      {
+        "path": {
+          "components": ["Web", "Pages", "dashboard.aspx"],
+          "parent": "Web/Pages",
+          "name": "dashboard.aspx",
+          "extension": "aspx",
+          "toString": "Web/Pages/dashboard.aspx"
+        },
+        "contentId": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
+        "type": "FILE",
+        "size": 2104
+      },
+      {
+        "path": {
+          "components": ["Web", "web.config"],
+          "parent": "Web",
+          "name": "web.config",
+          "extension": "config",
+          "toString": "Web/web.config"
+        },
+        "contentId": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+        "type": "FILE",
+        "size": 4296
+      },
+      {
+        "path": {
+          "components": ["Web", "appsettings.json"],
+          "parent": "Web",
+          "name": "appsettings.json",
+          "extension": "json",
+          "toString": "Web/appsettings.json"
+        },
+        "contentId": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+        "type": "FILE",
+        "size": 512
+      },
+      {
+        "path": {
+          "components": ["Web", "appsettings.prod.json"],
+          "parent": "Web",
+          "name": "appsettings.prod.json",
+          "extension": "json",
+          "toString": "Web/appsettings.prod.json"
+        },
+        "contentId": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+        "type": "FILE",
+        "size": 348
+      },
+      {
+        "path": {
+          "components": ["WebApp.sln"],
+          "parent": "",
+          "name": "WebApp.sln",
+          "extension": "sln",
+          "toString": "WebApp.sln"
+        },
+        "contentId": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+        "type": "FILE",
+        "size": 1240
+      },
+      {
+        "path": {
+          "components": ["Web", "WebApp.csproj"],
+          "parent": "Web",
+          "name": "WebApp.csproj",
+          "extension": "csproj",
+          "toString": "Web/WebApp.csproj"
+        },
+        "contentId": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+        "type": "FILE",
+        "size": 2048
+      },
+      {
+        "path": {
+          "components": ["Web", "Global.asax"],
+          "parent": "Web",
+          "name": "Global.asax",
+          "extension": "asax",
+          "toString": "Web/Global.asax"
+        },
+        "contentId": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "type": "FILE",
+        "size": 420
+      },
+      {
+        "path": {
+          "components": ["Web", "Global.asax.vb"],
+          "parent": "Web",
+          "name": "Global.asax.vb",
+          "extension": "vb",
+          "toString": "Web/Global.asax.vb"
+        },
+        "contentId": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+        "type": "FILE",
+        "size": 890
+      }
+    ],
+    "start": 0
+  }
+}

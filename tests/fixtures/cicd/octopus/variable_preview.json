@@ -1,0 +1,193 @@
+{
+  "_description": "Response from Octopus variable preview API: POST /api/Spaces-1/variables/preview. This shows the effective resolved value of each variable for a given deployment scope (project + environment + channel + tenant). Sensitive values are masked.",
+  "Variables": [
+    {
+      "Name": "landing-page-url",
+      "Value": "https://d-ui.prod.example.com",
+      "Scope": {
+        "Environment": ["Environments-1"],
+        "Channel": [],
+        "Tenant": [],
+        "Action": [],
+        "Machine": [],
+        "Role": [],
+        "ProcessOwner": []
+      },
+      "IsEditable": true,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "ProjectVariable",
+        "VariableSetId": "variableset-Projects-1",
+        "VariableId": "a1b2c3d4-0001-4000-8000-000000000002"
+      },
+      "Description": "Base URL for the embedded landing page SPA (Angular)"
+    },
+    {
+      "Name": "api-base-url",
+      "Value": "https://api.prod.example.com",
+      "Scope": {
+        "Environment": ["Environments-1"],
+        "Channel": [],
+        "Tenant": [],
+        "Action": [],
+        "Machine": [],
+        "Role": [],
+        "ProcessOwner": []
+      },
+      "IsEditable": true,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "ProjectVariable",
+        "VariableSetId": "variableset-Projects-1",
+        "VariableId": "a1b2c3d4-0001-4000-8000-000000000004"
+      },
+      "Description": "Base URL for the BFF API backend"
+    },
+    {
+      "Name": "db-connection-string",
+      "Value": "********",
+      "Scope": {
+        "Environment": ["Environments-1"],
+        "Channel": [],
+        "Tenant": [],
+        "Action": [],
+        "Machine": [],
+        "Role": [],
+        "ProcessOwner": []
+      },
+      "IsEditable": true,
+      "IsSensitive": true,
+      "Source": {
+        "Type": "ProjectVariable",
+        "VariableSetId": "variableset-Projects-1",
+        "VariableId": "a1b2c3d4-0001-4000-8000-000000000005"
+      },
+      "Description": "SQL Server connection string for the AcmeDb database"
+    },
+    {
+      "Name": "analytics-tracking-id",
+      "Value": "UA-12345678-1",
+      "Scope": {
+        "Environment": ["Environments-1"],
+        "Channel": [],
+        "Tenant": [],
+        "Action": [],
+        "Machine": [],
+        "Role": [],
+        "ProcessOwner": []
+      },
+      "IsEditable": true,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "ProjectVariable",
+        "VariableSetId": "variableset-Projects-1",
+        "VariableId": "a1b2c3d4-0001-4000-8000-000000000007"
+      },
+      "Description": "Google Analytics tracking ID"
+    },
+    {
+      "Name": "session-timeout-minutes",
+      "Value": "20",
+      "Scope": {
+        "Environment": ["Environments-1"],
+        "Channel": [],
+        "Tenant": [],
+        "Action": [],
+        "Machine": [],
+        "Role": [],
+        "ProcessOwner": []
+      },
+      "IsEditable": true,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "ProjectVariable",
+        "VariableSetId": "variableset-Projects-1",
+        "VariableId": "a1b2c3d4-0001-4000-8000-000000000009"
+      },
+      "Description": "Session timeout for the WebForms app"
+    },
+    {
+      "Name": "OctopusProjectName",
+      "Value": "WebForms Solution",
+      "Scope": {},
+      "IsEditable": false,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "ProjectVariable",
+        "VariableSetId": "variableset-Projects-1",
+        "VariableId": "a1b2c3d4-0001-4000-8000-000000000011"
+      },
+      "Description": ""
+    },
+    {
+      "Name": "Octopus.Environment.Id",
+      "Value": "Environments-1",
+      "Scope": {},
+      "IsEditable": false,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "BuiltIn",
+        "VariableSetId": null,
+        "VariableId": null
+      },
+      "Description": "The ID of the current environment"
+    },
+    {
+      "Name": "Octopus.Environment.Name",
+      "Value": "Production",
+      "Scope": {},
+      "IsEditable": false,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "BuiltIn",
+        "VariableSetId": null,
+        "VariableId": null
+      },
+      "Description": "The name of the current environment"
+    },
+    {
+      "Name": "Octopus.Project.Name",
+      "Value": "WebForms Solution",
+      "Scope": {},
+      "IsEditable": false,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "BuiltIn",
+        "VariableSetId": null,
+        "VariableId": null
+      },
+      "Description": "The name of the current project"
+    },
+    {
+      "Name": "Octopus.Release.Number",
+      "Value": "1.0.847",
+      "Scope": {},
+      "IsEditable": false,
+      "IsSensitive": false,
+      "Source": {
+        "Type": "BuiltIn",
+        "VariableSetId": null,
+        "VariableId": null
+      },
+      "Description": "The version number of the current release"
+    }
+  ],
+  "ScopeValues": {
+    "Environments": [
+      {
+        "Id": "Environments-1",
+        "Name": "Production"
+      }
+    ],
+    "Channels": [
+      {
+        "Id": "Channels-1",
+        "Name": "Default"
+      }
+    ],
+    "TenantTags": []
+  },
+  "Links": {
+    "Self": "/api/Spaces-1/variables/preview?project=Projects-1&environment=Environments-1&channel=Channels-1"
+  }
+}

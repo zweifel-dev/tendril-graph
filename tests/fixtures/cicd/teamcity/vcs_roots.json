@@ -1,0 +1,61 @@
+{
+  "count": 1,
+  "href": "/app/rest/vcs-roots",
+  "vcs-root": [
+    {
+      "id": "AcmeWebApp_WebformsSolution",
+      "name": "webforms-solution",
+      "vcsName": "jetbrains.git",
+      "href": "/app/rest/vcs-roots/id:AcmeWebApp_WebformsSolution",
+      "project": {
+        "id": "AcmeWebApp",
+        "name": "Acme WebApp",
+        "parentProjectId": "_Root",
+        "href": "/app/rest/projects/id:AcmeWebApp",
+        "webUrl": "https://teamcity.internal.acmecorp.com/project/AcmeWebApp"
+      },
+      "properties": {
+        "count": 8,
+        "property": [
+          {
+            "name": "agentCleanFilesPolicy",
+            "value": "ALL_UNTRACKED"
+          },
+          {
+            "name": "agentCleanPolicy",
+            "value": "ON_BRANCH_CHANGE"
+          },
+          {
+            "name": "authMethod",
+            "value": "PASSWORD"
+          },
+          {
+            "name": "branch",
+            "value": "refs/heads/main"
+          },
+          {
+            "name": "teamcity:branchSpec",
+            "value": "+:refs/heads/*"
+          },
+          {
+            "name": "url",
+            "value": "https://bitbucket.internal.acmecorp.com/scm/acme/webforms-solution.git"
+          },
+          {
+            "name": "username",
+            "value": "tc-service-account"
+          },
+          {
+            "name": "secure:password",
+            "type": {
+              "rawValue": "credentialsJSON:a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ]
+      },
+      "vcsRootInstances": {
+        "href": "/app/rest/vcs-root-instances?locator=vcsRoot:(id:AcmeWebApp_WebformsSolution)"
+      }
+    }
+  ]
+}

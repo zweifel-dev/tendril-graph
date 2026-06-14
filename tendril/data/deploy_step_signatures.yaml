@@ -1,0 +1,70 @@
+# Deploy-step detection signatures (SPEC.md §7, critique C4).
+# Used by the attribution engine to detect deploy steps inside build workflows.
+# Versioned separately from the plugin contract.
+
+signatures:
+  # Octopus Deploy
+  - provider_id: octopus
+    match_type: action_id
+    pattern: "OctopusDeploy/create-release-action"
+    env_extraction_hint: "inputs.environment"
+  - provider_id: octopus
+    match_type: action_id
+    pattern: "OctopusDeploy/deploy-release-action"
+    env_extraction_hint: "inputs.environment"
+  - provider_id: octopus
+    match_type: step_name_pattern
+    pattern: "octo deploy-release"
+    env_extraction_hint: "--deployTo"
+  - provider_id: octopus
+    match_type: step_name_pattern
+    pattern: "octo create-release.*--deployTo"
+    env_extraction_hint: "--deployTo"
+
+  # Kubernetes / Helm
+  - provider_id: kubernetes
+    match_type: step_name_pattern
+    pattern: "kubectl apply"
+    env_extraction_hint: "--namespace"
+  - provider_id: kubernetes
+    match_type: step_name_pattern
+    pattern: "helm upgrade"
+    env_extraction_hint: "--namespace"
+  - provider_id: kubernetes
+    match_type: action_id
+    pattern: "azure/k8s-deploy"
+    env_extraction_hint: "inputs.namespace"
+
+  # AWS
+  - provider_id: aws
+    match_type: step_name_pattern
+    pattern: "aws deploy"
+    env_extraction_hint: null
+  - provider_id: aws
+    match_type: step_name_pattern
+    pattern: "aws s3 sync"
+    env_extraction_hint: null
+  - provider_id: aws
+    match_type: action_id
+    pattern: "aws-actions/amazon-ecs-deploy-task-definition"
+    env_extraction_hint: null
+
+  # Terraform
+  - provider_id: terraform
+    match_type: step_name_pattern
+    pattern: "terraform apply"
+    env_extraction_hint: "-var-file"
+  - provider_id: terraform
+    match_type: action_id
+    pattern: "hashicorp/setup-terraform"
+    env_extraction_hint: null
+
+  # Azure
+  - provider_id: azure
+    match_type: task_type
+    pattern: "AzureWebApp"
+    env_extraction_hint: "slot"
+  - provider_id: azure
+    match_type: task_type
+    pattern: "AzureRmWebAppDeployment"
+    env_extraction_hint: "SlotName"

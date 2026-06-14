@@ -1,0 +1,125 @@
+{
+  "ItemType": "Project",
+  "TotalResults": 2,
+  "ItemsPerPage": 30,
+  "NumberOfPages": 1,
+  "LastPageNumber": 0,
+  "IsStale": false,
+  "Items": [
+    {
+      "Id": "Projects-1",
+      "VariableSetId": "variableset-Projects-1",
+      "DeploymentProcessId": "deploymentprocess-Projects-1",
+      "DiscreteChannelRelease": false,
+      "IncludedLibraryVariableSetIds": [
+        "LibraryVariableSets-1"
+      ],
+      "DefaultToSkipIfAlreadyInstalled": false,
+      "TenantedDeploymentMode": "Untenanted",
+      "DefaultGuidedFailureMode": "EnvironmentDefault",
+      "VersioningStrategy": {
+        "Template": "#{Octopus.Version.LastMajor}.#{Octopus.Version.LastMinor}.#{Octopus.Version.NextPatch}",
+        "DonorPackage": null,
+        "DonorPackageStepId": null
+      },
+      "ReleaseCreationStrategy": {
+        "ReleaseCreationPackage": null,
+        "ReleaseCreationPackageStepId": null,
+        "ChannelId": null
+      },
+      "Templates": [],
+      "AutoDeployReleaseOverrides": [],
+      "ReleaseNotesTemplate": null,
+      "SpaceId": "Spaces-1",
+      "ExtensionSettings": [],
+      "Name": "WebForms Solution",
+      "Slug": "webforms-solution",
+      "Description": "ASP.NET WebForms (VB + C#) customer portal. Built in TeamCity, deployed via Octopus.",
+      "IsDisabled": false,
+      "ProjectGroupId": "ProjectGroups-1",
+      "LifecycleId": "Lifecycles-1",
+      "AutoCreateRelease": false,
+      "ProjectConnectivityPolicy": {
+        "SkipMachineBehavior": "SkipUnavailableMachines",
+        "TargetRoles": ["web-server"],
+        "AllowDeploymentsToNoTargets": false,
+        "ExcludeUnhealthyTargets": false
+      },
+      "LastModifiedOn": "2026-06-10T09:14:22.437+00:00",
+      "LastModifiedBy": "svc-teamcity",
+      "Links": {
+        "Self": "/api/Spaces-1/projects/Projects-1",
+        "Releases": "/api/Spaces-1/projects/Projects-1/releases{/version}{?skip,take,searchByVersion}",
+        "Channels": "/api/Spaces-1/projects/Projects-1/channels{?skip,take,searchByName}",
+        "Triggers": "/api/Spaces-1/projects/Projects-1/triggers{?skip,take,searchByName}",
+        "OrderChannels": "/api/Spaces-1/projects/Projects-1/channels/order",
+        "Variables": "/api/Spaces-1/variables/variableset-Projects-1",
+        "Progression": "/api/Spaces-1/projects/Projects-1/progression",
+        "DeploymentProcess": "/api/Spaces-1/deploymentprocesses/deploymentprocess-Projects-1",
+        "Web": "/app#/Spaces-1/projects/Projects-1",
+        "Logo": "/api/Spaces-1/projects/Projects-1/logo"
+      }
+    },
+    {
+      "Id": "Projects-2",
+      "VariableSetId": "variableset-Projects-2",
+      "DeploymentProcessId": "deploymentprocess-Projects-2",
+      "DiscreteChannelRelease": false,
+      "IncludedLibraryVariableSetIds": [
+        "LibraryVariableSets-1"
+      ],
+      "DefaultToSkipIfAlreadyInstalled": false,
+      "TenantedDeploymentMode": "Untenanted",
+      "DefaultGuidedFailureMode": "EnvironmentDefault",
+      "VersioningStrategy": {
+        "Template": "#{Octopus.Version.LastMajor}.#{Octopus.Version.LastMinor}.#{Octopus.Version.NextPatch}",
+        "DonorPackage": null,
+        "DonorPackageStepId": null
+      },
+      "ReleaseCreationStrategy": {
+        "ReleaseCreationPackage": null,
+        "ReleaseCreationPackageStepId": null,
+        "ChannelId": null
+      },
+      "Templates": [],
+      "AutoDeployReleaseOverrides": [],
+      "ReleaseNotesTemplate": null,
+      "SpaceId": "Spaces-1",
+      "ExtensionSettings": [],
+      "Name": "Landing Page API",
+      "Slug": "landing-page-api",
+      "Description": ".NET 8 BFF/API for the landing page SPA. Built in GitHub Actions, deployed via Octopus.",
+      "IsDisabled": false,
+      "ProjectGroupId": "ProjectGroups-1",
+      "LifecycleId": "Lifecycles-1",
+      "AutoCreateRelease": false,
+      "ProjectConnectivityPolicy": {
+        "SkipMachineBehavior": "SkipUnavailableMachines",
+        "TargetRoles": ["api-server"],
+        "AllowDeploymentsToNoTargets": false,
+        "ExcludeUnhealthyTargets": false
+      },
+      "LastModifiedOn": "2026-06-09T16:42:08.112+00:00",
+      "LastModifiedBy": "svc-github-actions",
+      "Links": {
+        "Self": "/api/Spaces-1/projects/Projects-2",
+        "Releases": "/api/Spaces-1/projects/Projects-2/releases{/version}{?skip,take,searchByVersion}",
+        "Channels": "/api/Spaces-1/projects/Projects-2/channels{?skip,take,searchByName}",
+        "Triggers": "/api/Spaces-1/projects/Projects-2/triggers{?skip,take,searchByName}",
+        "OrderChannels": "/api/Spaces-1/projects/Projects-2/channels/order",
+        "Variables": "/api/Spaces-1/variables/variableset-Projects-2",
+        "Progression": "/api/Spaces-1/projects/Projects-2/progression",
+        "DeploymentProcess": "/api/Spaces-1/deploymentprocesses/deploymentprocess-Projects-2",
+        "Web": "/app#/Spaces-1/projects/Projects-2",
+        "Logo": "/api/Spaces-1/projects/Projects-2/logo"
+      }
+    }
+  ],
+  "Links": {
+    "Self": "/api/Spaces-1/projects?skip=0&take=30",
+    "Template": "/api/Spaces-1/projects{?skip,take,ids,clone,name,partialName,clonedFromProjectId}",
+    "Page.All": "/api/Spaces-1/projects?skip=0&take=2147483647",
+    "Page.Current": "/api/Spaces-1/projects?skip=0&take=30",
+    "Page.Last": "/api/Spaces-1/projects?skip=0&take=30"
+  }
+}

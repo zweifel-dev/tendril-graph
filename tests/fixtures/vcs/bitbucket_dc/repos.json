@@ -1,0 +1,53 @@
+{
+  "size": 1,
+  "limit": 25,
+  "isLastPage": true,
+  "values": [
+    {
+      "slug": "webforms-solution",
+      "id": 4201,
+      "name": "webforms-solution",
+      "description": "ASP.NET WebForms application (VB + C#) — customer portal and dashboard host",
+      "hierarchyId": "a1b2c3d4e5f6a1b2c3d4",
+      "scmId": "git",
+      "state": "AVAILABLE",
+      "statusMessage": "Available",
+      "forkable": true,
+      "project": {
+        "key": "ACME",
+        "id": 101,
+        "name": "Acme Corp",
+        "description": "Acme Corporation mono-estate",
+        "public": false,
+        "type": "NORMAL",
+        "links": {
+          "self": [
+            {
+              "href": "https://bitbucket.internal.acmecorp.com/projects/ACME"
+            }
+          ]
+        }
+      },
+      "public": false,
+      "archived": false,
+      "links": {
+        "clone": [
+          {
+            "href": "https://bitbucket.internal.acmecorp.com/scm/acme/webforms-solution.git",
+            "name": "http"
+          },
+          {
+            "href": "ssh://git@bitbucket.internal.acmecorp.com:7999/acme/webforms-solution.git",
+            "name": "ssh"
+          }
+        ],
+        "self": [
+          {
+            "href": "https://bitbucket.internal.acmecorp.com/projects/ACME/repos/webforms-solution/browse"
+          }
+        ]
+      }
+    }
+  ],
+  "start": 0
+}

@@ -8,7 +8,7 @@ Tendril-Graph reconstructs the cross-repo dependency graph of a multi-repo estat
 
 <!-- badges: build · coverage · license · npm/pypi — add on first release -->
 
-[Requirements](PRD.md) · [Spec](SPEC.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Previous Context](archive-context/*.md)
+[Requirements](spec/initial-plan/PRD.md) · [Spec](spec/initial-plan/SPEC.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Previous Context](archive-context/*.md)
 
 </div>
 

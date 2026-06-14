@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Tendril-Graph is **pre-scaffolding** — the repository currently contains design documents only; no implementation code exists yet. Read this file every session before touching anything.
+Tendril-Graph has M0–M4 scaffolding committed (all 7 plugin ABCs, Kùzu store, VCS/CI/CD connectors, attribution engine, extractors, reverse index, resolver, BFS traversal). All 38 tests pass. Read this file every session before touching anything.
 
 ## What Tendril-Graph is
 
@@ -49,14 +49,22 @@ When `PRD.md`/`SPEC.md` and code disagree, the docs are the source of truth — 
 
 ## Build / test / run
 
-> Fill these in as scaffolding lands; keep this section current — it's the first thing an agent looks for.
+```bash
+# install (editable — required for `python -m tendril` to work from source):
+python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 
+# run all tests (M0 acceptance + M4 end-to-end, no live API calls):
+.venv/bin/python -m pytest tests/
+
+# run a single test file:
+.venv/bin/python -m pytest tests/test_end_to_end.py -v
+
+# run the CLI:
+.venv/bin/tendril --help
+.venv/bin/tendril providers list
 ```
-# install:   TBD
-# build:     TBD
-# test:      TBD  (must include the plugin conformance suite)
-# run e2e:   TBD  (the Phase-1 slice: github repo → actions → env var → resolved edge)
-```
+
+**Package layout note:** All implementation packages (`cli/`, `core/`, `models/`, etc.) live at the project root as flat top-level packages. `tendril/` is a thin shim that provides `python -m tendril` and the console script. `pip install -e .` installs both. `store/schema.py` holds the Kùzu DDL separately from the adapter.
 
 ## First milestone (if you're starting the build)
 

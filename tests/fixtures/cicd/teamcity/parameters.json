@@ -1,0 +1,62 @@
+{
+  "count": 7,
+  "href": "/app/rest/buildTypes/id:AcmeWebforms_Build/parameters",
+  "property": [
+    {
+      "name": "env.LANDING_PAGE_URL",
+      "value": "https://d-ui.prod.example.com",
+      "own": true,
+      "type": {
+        "rawValue": "text description='URL of the landing page SPA' label='Landing Page URL' display='normal'"
+      }
+    },
+    {
+      "name": "env.API_BASE_URL",
+      "value": "https://api.prod.example.com",
+      "own": true,
+      "type": {
+        "rawValue": "text description='Base URL for the BFF API' label='API Base URL' display='normal'"
+      }
+    },
+    {
+      "name": "env.DB_CONNECTION_STRING",
+      "value": null,
+      "own": true,
+      "type": {
+        "rawValue": "password description='SQL Server connection string' label='DB Connection' display='hidden'"
+      }
+    },
+    {
+      "name": "env.OCTOPUS_API_KEY",
+      "value": null,
+      "own": true,
+      "type": {
+        "rawValue": "password description='Octopus API key for package push' label='Octopus API Key' display='hidden'"
+      }
+    },
+    {
+      "name": "system.Configuration",
+      "value": "Release",
+      "own": true,
+      "type": {
+        "rawValue": "text description='Build configuration' label='Configuration' display='normal'"
+      }
+    },
+    {
+      "name": "system.SolutionFile",
+      "value": "WebApp.sln",
+      "own": true,
+      "type": {
+        "rawValue": "text description='Path to the solution file' label='Solution File' display='normal'"
+      }
+    },
+    {
+      "name": "system.version",
+      "value": "1.0.%build.counter%",
+      "own": true,
+      "type": {
+        "rawValue": "text description='Package version number' label='Version' display='normal'"
+      }
+    }
+  ]
+}
