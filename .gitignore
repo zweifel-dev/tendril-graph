@@ -12,3 +12,9 @@ build/
 .venv
 .claude
 .claude/*
+.venv/*
+
+# Credentials — never commit
+.env
+.env.local
+*.env

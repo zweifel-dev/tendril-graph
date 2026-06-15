@@ -38,13 +38,38 @@ def main(argv: list[str] | None = None) -> int:
     build_parser.add_argument("--mode", choices=["structured", "hybrid", "agentic"], default="structured")
 
     # tendril query
-    query_parser = subparsers.add_parser("query", help="Query the graph")
+    query_parser = subparsers.add_parser("query", help="Query the dependency graph")
+    query_parser.add_argument(
+        "--db", default=":memory:", metavar="PATH",
+        help="Path to the Kùzu graph database (default: :memory:)",
+    )
     query_sub = query_parser.add_subparsers(dest="query_command")
-    query_sub.add_parser("dependency_path", help="Find dependency path between repos")
-    query_sub.add_parser("impact_analysis", help="Analyze downstream impact")
-    query_sub.add_parser("find_relevant_repos", help="Find repos relevant to a task")
-    query_sub.add_parser("env_diff", help="Compare environments")
-    query_sub.add_parser("explain_edge", help="Explain a specific edge")
+
+    frr = query_sub.add_parser("find-relevant-repos", help="Find repos relevant to a task")
+    frr.add_argument("--task", required=True, help="Keyword description of the task")
+    frr.add_argument("--env", required=True, help="Environment to query")
+    frr.add_argument("--max-hops", type=int, default=3, help="BFS depth limit (default: 3)")
+    frr.add_argument("--min-confidence", default="low", choices=["high", "medium", "low"])
+
+    ia = query_sub.add_parser("impact", help="Analyze downstream impact of a repo")
+    ia.add_argument("--repo-id", required=True, help="Repository ID (provider:org/name)")
+    ia.add_argument("--env", required=True, help="Environment to query")
+    ia.add_argument("--min-confidence", default="low", choices=["high", "medium", "low"])
+
+    dp = query_sub.add_parser("path", help="Find dependency path between repos")
+    dp.add_argument("--from-id", required=True, help="Source repo ID")
+    dp.add_argument("--to-id", required=True, help="Target repo ID")
+    dp.add_argument("--env", required=True, help="Environment to query")
+
+    ed = query_sub.add_parser("env-diff", help="Compare dependency edges across environments")
+    ed.add_argument("--repo-id", required=True, help="Repository ID")
+    ed.add_argument("--env-a", required=True, help="First environment")
+    ed.add_argument("--env-b", required=True, help="Second environment")
+
+    ee = query_sub.add_parser("explain-edge", help="Explain a specific dependency edge")
+    ee.add_argument("--from-id", required=True, help="Source repo ID")
+    ee.add_argument("--to-id", required=True, help="Target repo ID")
+    ee.add_argument("--env", required=True, help="Environment to query")
 
     # tendril serve
     serve_parser = subparsers.add_parser("serve", help="Start the MCP server")
@@ -93,17 +118,70 @@ def _graph_build(args: argparse.Namespace) -> int:
 
 
 def _query(args: argparse.Namespace) -> int:
+    from tendril.query.engine import QueryEngine
+    from tendril.store.kuzu_store import KuzuStore
+
     cmd = args.query_command
-    if cmd:
-        print(f"Query: {cmd}")
-    print("  [Not yet implemented — M5 milestone]")
+    if not cmd:
+        print("Usage: tendril query <subcommand>")
+        print("Subcommands: find-relevant-repos, impact, path, env-diff, explain-edge")
+        return 1
+
+    db_path = getattr(args, "db", ":memory:")
+    store = KuzuStore(db_path)
+    engine = QueryEngine(store)
+
+    if cmd == "find-relevant-repos":
+        result = engine.find_relevant_repos(
+            task=args.task,
+            env=args.env,
+            max_hops=args.max_hops,
+            min_confidence=args.min_confidence,
+        )
+    elif cmd == "impact":
+        result = engine.impact_analysis(
+            repo_id=args.repo_id,
+            env=args.env,
+            min_confidence=args.min_confidence,
+        )
+    elif cmd == "path":
+        result = engine.dependency_path(
+            from_id=args.from_id,
+            to_id=args.to_id,
+            env=args.env,
+        )
+    elif cmd == "env-diff":
+        result = engine.env_diff(
+            repo_id=args.repo_id,
+            env_a=args.env_a,
+            env_b=args.env_b,
+        )
+    elif cmd == "explain-edge":
+        result = engine.explain_edge(
+            from_id=args.from_id,
+            to_id=args.to_id,
+            env=args.env,
+        )
+    else:
+        print(f"Unknown query subcommand: {cmd}")
+        return 1
+
+    print(json.dumps(result.to_dict(), indent=2))
     return 0
 
 
 def _serve(args: argparse.Namespace) -> int:
     if args.mcp:
         print(f"Starting MCP server on port {args.port}...")
-    print("  [Not yet implemented — M5 milestone]")
+        try:
+            import uvicorn
+            uvicorn.run("tendril.mcp.server:app", port=args.port, log_level="info")
+        except ImportError:
+            print("uvicorn not installed. Run: pip install 'tendril-graph[mcp]'")
+            return 1
+    else:
+        print("Use --mcp flag to start the MCP server.")
+        print(f"  tendril serve --mcp --port {args.port}")
     return 0
 
 

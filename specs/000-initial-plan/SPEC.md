@@ -62,7 +62,9 @@ Tendril-Graph reconstructs the inter-repo dependency graph from three data plane
 
 ## 2. Domain model (graph schema)
 
-**Nodes:** `Repo`, `Deployable` (produced_by Repo; kind web/api/job/ui/bff), `Environment` (with provenance), `Endpoint` (scheme/host/port/path_base), `Pipeline`, `CICDProvider` (system, role[]), `VariableStore` (kind, scopes, readable), `ServiceIdentity` (canonical + aliases), `ConfigVar`, `MessageChannel` (queue/topic).
+**Nodes:** `Repo`, `Deployable` (produced_by Repo; kind web/api/job/ui/bff), `Environment` (with provenance), `Endpoint` (scheme/host/port/path_base), `Pipeline`, `CICDProvider` (system, role[]), `VariableStore` (kind, scopes, readable), `ServiceIdentity` (canonical + aliases), `ConfigVar`, `MessageChannel` (queue/topic), `DeployedRef` (sha, branch, env, deployable_id, deploy_timestamp, source).
+
+> **v0 note (C3):** In v0, each repo produces a single `Deployable` by default (1:1 Repo:Deployable). Multi-deployable repos (e.g. a solution with a web app + background job) are flagged for manual review; the CI/CD profile is the signal — Octopus projects map naturally to Deployables. A future `deployables(repo_ir) -> Deployable[]` method on `ExtractorPlugin` will generalize this without a core change.
 
 **Edges** (environment-scoped; carry `provenance`, `confidence`, `evidence`, `discovered_at`):
 
@@ -73,6 +75,7 @@ Tendril-Graph reconstructs the inter-repo dependency graph from three data plane
 | `Deployable —CONSUMES→ Endpoint @env` | consumer projection |
 | `Endpoint —RESOLVES_TO→ Deployable @env` | the join result |
 | `Deployable —DEPENDS_ON→ Deployable @env` | the materialized edge agents query |
+| `Deployable —DEPLOYED_AS→ DeployedRef @env` | deployed SHA per env (queryable) |
 | `Repo —BUILT_BY→ CICDProvider` / `—DEPLOYED_BY→ CICDProvider @env` | attribution (§7) |
 | `CICDProvider —RESOLVES_VARS_FROM→ VariableStore` | where values come from |
 | `Pipeline —BUILDS→ Repo` / `—DEPLOYS→ Deployable @env` | CI/CD wiring |
@@ -82,11 +85,17 @@ Tendril-Graph reconstructs the inter-repo dependency graph from three data plane
 
 **Provenance dimension** on edges: `declared` (static source), `injected` (CI/CD-resolved), `observed` (runtime telemetry). An edge may carry several; cross-plane agreement multiplies confidence. `DEPENDS_ON` derives from a `CONSUMES → RESOLVES_TO → EXPOSES` triangle and inherits the weakest confidence in the chain.
 
+> **v0 note (M3):** In v0, `DEPENDS_ON` is the primary materialized edge that agents query. `EXPOSES`/`CONSUMES`/`RESOLVES_TO` edges are created as intermediate artifacts during resolution but their persistence is optional — they are most useful for `explain_edge`. The `Endpoint` node is created when a consumer ref or provider identity resolves to a concrete URL/host; it is the evidence chain, not the primary query surface.
+
+> **L1 clarification:** `ConfigVar` nodes are persisted `TokenDecl` records. The `INJECTED_INTO` edge is created when a token resolves against a variable store during the acquisition ladder (§9).
+
 ---
 
 ## 3. Canonical Service Identity & alias resolution
 
 A service is known by many names; matching on any one is brittle. A canonical `ServiceIdentity` carries aliases across identity **classes**: network (host/URL per env), logical (service/app names), deploy (Octopus project, TeamCity build-config id, slot/role), artifact (NuGet/npm/image id), async (queue/topic), data (DB schema/connection). A normalizer canonicalizes raw references (case-fold, strip env suffixes, expand abbreviations, map host↔service via DNS/ingress). Match confidence by class: exact deploy-target/artifact or exact host/URL (post env-resolution) → **high**; normalized logical-name → **medium**; fuzzy logical/data → **low** (candidate, needs review). Colliding aliases emit *both* candidates; ambiguity is surfaced, never auto-resolved.
+
+> **H1 clarification:** `ProviderIdentity` is the raw extraction output (per-repo, per-extractor). During global indexing, `ProviderIdentity` records are canonicalized and merged into `ServiceIdentity` nodes using the alias resolution rules above. Conflicts (two repos claim the same host) produce two linked nodes with `ambiguous: true`. In v0, this canonicalization is performed in-memory by the `ReverseIndex` during traversal; `ServiceIdentity` nodes are persisted to the graph store for querying. The reverse index is keyed by `ServiceIdentity`, not raw `ProviderIdentity`.
 
 ---
 
@@ -137,6 +146,8 @@ read_effective_value(token, project, env) -> Resolved | Unresolved      # previe
 read_deploy_logs(run) -> LogStream              # acquisition ladder rung 4, if supported
 ```
 
+**Deployable node creation (C3).** `Deployable` nodes are not self-describing — they are produced by the attribution engine combining VCS and CI/CD data. The creation rule: for each `PipelineBinding` returned by `discover_for_repo()` that carries `roles=[deploy]` or `roles=[build, deploy]`, the attribution engine creates a `Deployable` node keyed as `{vcs_provider}:{org}/{repo}#{pipeline_id}`. In v0, when a repo has exactly one deploy binding (the common case), the `#pipeline_id` suffix is omitted and the Deployable id matches the Repo id, giving the 1:1 default. When multiple deploy bindings exist (multi-target), each gets its own Deployable and the repo is flagged. `read_provider_identities()` populates the provider projection of each Deployable; the Deployable node must exist before those identities can be indexed.
+
 ### 4.4 `ExtractorPlugin` (language/framework)
 
 ```
@@ -147,8 +158,11 @@ extract(repo_ir) -> {
     provider_identities: ProviderIdentity[],
     token_decls: TokenDecl[]
 }
+# v1+: deployables(repo_ir) -> Deployable[]      # multi-deployable repos; default: 1:1 Repo:Deployable
 ```
 Extractors **locate and classify; never resolve.** Multiple extractors may match one repo; results are merged.
+
+> **v0 note (C3):** In v0, `deployables()` is not required — the system defaults to one `Deployable` per `Repo`. When the CI/CD profile indicates multiple deploy targets (e.g. separate Octopus projects from the same repo), the repo is flagged `multi-deployable` for human review. The `deployables()` method is planned for v1 without requiring a core change.
 
 ### 4.5 `TelemetryProvider` (runtime plane, optional)
 
@@ -212,7 +226,7 @@ Each reference connector implements §4 and normalizes its platform into IR. Rea
 - **Bitbucket (VCS).** **Cloud vs Data Center is a hard fork** — Cloud uses OAuth/API-token against `api.bitbucket.org` (tokens expire hourly, refresh needed); Data Center uses HTTP access tokens against the self-hosted REST API. Repo read + separate webhook scope. Atlassian Rovo MCP covers Cloud (org-linked, API-token).
 - **CircleCI (CI/CD).** Personal API token (`Circle-Token`); project tokens unsupported on v2. Read `config.yml`, contexts + env-var **names** (secret values masked). Outbound webhooks. Official MCP. Rate-limit/pagination aware.
 - **Octopus Deploy (CI/CD).** API key, scoped by Space. Read spaces/environments/projects/deployment-processes/targets/**variable sets** (sensitive masked) + git branches. Subscriptions for events. Official read-only MCP. Richest env-scoping model → anchors per-env work.
-- **TeamCity (CI/CD).** Access token; REST at `/app/rest`. Read build configs/templates, parameters, **VCS roots** (the link to the repo), snapshot/artifact deps. Native webhooks for build events. Built-in MCP (2026.1) + community server. **Confirm On-Prem is patched for known CVEs before pointing a credential at it.**
+- **TeamCity (CI/CD).** Access token; REST at `/app/rest`. Read build configs/templates, parameters, **VCS roots** (the link to the repo), snapshot/artifact deps. Native webhooks for build events. Built-in MCP (2026.1) + community server. **CVE version check (L2):** on connector initialization, read server version from `GET /app/rest/server` and compare against a documented minimum (maintained in `data/deploy_step_signatures.yaml`). If below minimum, emit a `cicd-version-warning` on the provider node and log a human-readable advisory — the run continues; this is never a hard failure. Unreadable version → `cicd-version-unknown` flag only.
 - **GitHub Actions (CI/CD, intrinsic).** Rides the GitHub credential. Detect via `.github/workflows/*.yml`. **GitHub Environments are a native, readable per-env scoping source** (`vars.*` readable; `secrets.*` names only; env-scoped values override repo-level when a job sets `environment:`).
 - **Bitbucket Pipelines (CI/CD, intrinsic).** Rides the Bitbucket credential. Detect via `bitbucket-pipelines.yml`. Repo/workspace/deployment variables (secured masked); Bitbucket Deployments as the env construct.
 
@@ -240,7 +254,16 @@ Per-ecosystem plugins producing consumer/provider/token projections:
 
 CI/CD is **per-repo and heterogeneous**; the resolver can't pick a variable store until it knows which system deploys *this* repo to *this* env. Attribution runs **between extraction and resolution**.
 
-**Evidence, two directions.** *Intrinsic:* detector files (`.github/workflows/`, `.circleci/config.yml`, `bitbucket-pipelines.yml`, `.teamcity/` Kotlin DSL, `.octopus/*.ocl` Config-as-Code, `azure-pipelines.yml`, `Jenkinsfile`) and **deploy-step detection inside a build workflow** (an `OctopusDeploy/*` action, `aws deploy`, `helm/kubectl`, Terraform apply, a platform trigger) — the key heuristic for chaining. *Extrinsic:* platform→repo mappings (TeamCity VCS roots, CircleCI project⇄repo, Octopus Config-as-Code git connection or artifact provenance).
+**Evidence, two directions.** *Intrinsic:* detector files (`.github/workflows/`, `.circleci/config.yml`, `bitbucket-pipelines.yml`, `.teamcity/` Kotlin DSL, `.octopus/*.ocl` Config-as-Code, `azure-pipelines.yml`, `Jenkinsfile`) and **deploy-step detection inside a build workflow** — the key heuristic for chaining. *Extrinsic:* platform→repo mappings (TeamCity VCS roots, CircleCI project⇄repo, Octopus Config-as-Code git connection or artifact provenance).
+
+**Deploy-step signature catalog (C4).** Deploy-step detection is driven by a versioned data file `data/deploy_step_signatures.yaml` — not embedded in code. Each entry has the schema:
+```yaml
+- provider_id: octopus          # which CI/CD provider owns the deploy step
+  match_type: action_id         # action_id | task_type | step_name_pattern
+  pattern: "OctopusDeploy/*"    # matched against the workflow step
+  env_extraction_hint: environment  # field/key that names the target env, if present
+```
+The catalog covers common deploy mechanisms (`OctopusDeploy/*` actions, `aws deploy`, `helm upgrade`, `kubectl apply`, Terraform `apply`, TeamCity Octopus deploy runner, Bitbucket Pipelines deployment steps). When a workflow step matches an entry, the named provider is attributed as deploy owner; the `env_extraction_hint` is used to extract the target environment from the step config. **Unknown mechanism** (no catalog match): attribute the build owner as the sole owner, set `deploy_owner_confidence=low`, and emit an `unattributed-deploy` flag on the profile — the run continues.
 
 **Multiplicity & chaining.** A repo's CI/CD is a **set of (provider, role)**. Build owner and deploy owner are often different (build in GitHub Actions, deploy via Octopus). Rule:
 
@@ -262,11 +285,11 @@ Materialization of all **provider projections**: for every deployable, every ide
 
 Tokens are evaluated per environment against the store the attribution profile selected. The **how** of obtaining a value is a tiered ladder, tried cheapest/safest first; record which rung produced the value (it caps confidence):
 
-1. **Static config in repo** — literal values committed in `appsettings.*`/`values.{env}.yaml`/`.env`.
+1. **Static config in repo** — literal values committed in `appsettings.*`/`values.{env}.yaml`/`.env`. Read at the **deployed ref** (the SHA obtained from the deploy plane), never at `HEAD`/`main` (FR-24).
 2. **CI/CD variable store API** — read value + apply the store's scoping (Octopus scope match, GitHub Environment override, TeamCity inheritance, CircleCI context binding, Bitbucket deployment scope).
 3. **Effective-value / preview API** — read the value *as the platform resolved it* (e.g. Octopus variable preview). Cleanest; avoids re-emulating scoping.
 4. **Deploy-log harvesting** — parse deploy/build logs for the **effective non-secret values actually injected**, per env. Ground truth of what shipped; carries a run-id/freshness qualifier.
-5. **Browser fallback (Playwright)** — gated: **non-secret only, self-hosted only, last resort**, dedicated low-priv account, isolated context, never on the bulk path, medium-at-best confidence. Inverts the read-only/least-priv posture, so bottom rung.
+5. **Browser fallback (Playwright)** — *(v1+, deferred from v0)* Inverts the read-only/least-priv security posture; gated: non-secret only, self-hosted only, last resort, dedicated low-priv account, isolated context, never on the bulk path, medium-at-best confidence. Requires a security review gate before enabling.
 6. **Runtime introspection (optional)** — query a deployed service's effective config; validation-grade.
 
 **Secret floor.** Secret-typed values are masked in the UI, the API, **and logs** — so no rung recovers them. A genuinely secret-hidden value is emitted as `unresolved-secret` + evidence, for human review or runtime cross-fill (§11). Prefer rungs 3–4 ("let the platform resolve, read the answer") over re-emulating scoping or driving a browser.
@@ -274,10 +297,14 @@ Tokens are evaluated per environment against the store the attribution profile s
 **Logic-based pipelines.** Build/deploy pipelines that compute parameters via embedded shell/PowerShell/Groovy with conditionals, loops, or `$(external-command)` output are **not statically evaluated** — that is undecidable in the general case. They resolve via rungs 3–4 (preview API / deploy-log harvest = read the value the pipeline actually emitted), or, for the declarative/constant-folded portions, via §6 analysis. Imperative pipeline logic is an *observe-the-result* problem, not a *static-evaluation* problem.
 
 ```
-acquire(T, repo R, env E):
-    for rung in [static, store_api, preview_api, deploy_log, browser, runtime]:
-        if rung == browser and (T.is_secret or target.is_saas): continue
-        v = rung.try(T, R, E); if v concrete: return (v, rung)
+# C1 fix: ref parameter threads the deployed SHA through source reads (FR-24)
+acquire(T, repo R, env E, ref: str | None):
+    for rung in [static, store_api, preview_api, deploy_log, runtime]:
+        # Rung 1 (static): read_file(repo, ref, path) — uses deployed ref, not HEAD
+        if rung == static: v = rung.try(T, R, ref)
+        else:              v = rung.try(T, R, E)
+        if v concrete: return (v, rung, evidence)
+    # Rung 5 (browser): deferred to v1+ — see note above
     return (UNRESOLVED_SECRET if T.is_secret else UNRESOLVED_NO_SOURCE)
 ```
 
@@ -286,26 +313,42 @@ acquire(T, repo R, env E):
 ## 10. Traversal engine
 
 ```
+# H2 fix: explicit mode dispatch; structured-mode pseudocode below
+evaluate_node(repo, env, mode):
+    if mode == "structured":  # deterministic fast path
+        profile = attribution(repo)
+        refs = extractors(repo)
+        deployed_ref = deploy_plane.resolve_ref(profile, env)   # FR-24
+        for consumer_ref in refs.consumer_refs:
+            value = acquire(consumer_ref.token, repo, env, ref=deployed_ref)   # §9
+            candidates = reverse_index.lookup(value, env)                       # §8
+            # H5 fix: enqueue ALL candidates; ambiguous=True when len > 1
+            ambiguous = len(candidates) > 1
+            for cand in candidates:
+                edge = DEPENDS_ON(repo → cand.repo, env,
+                                  provenance = declared|injected,
+                                  confidence = min(profile.conf, score(consumer_ref, cand)),
+                                  evidence   = [consumer_ref.evidence, cand.evidence, value.rung],
+                                  ambiguous  = ambiguous,
+                                  candidates = [c.repo for c in candidates] if ambiguous else [])
+                persist(edge)
+                if not expanded(cand.repo): enqueue(cand.repo)
+
+    if mode in ("hybrid", "agentic"):  # §15 LLM evaluation loop
+        # See §15.2 — LLM proposes, grounding validates
+        # structured fast-path runs first in hybrid; LLM handles unresolved/ambiguous only
+
 seed queue with anchor repo
 while queue not empty:
     repo = dequeue(); if expanded(repo): continue
-    profile = attribution(repo)
-    refs = extractors(repo)
     for env in environments:
-        for ref in refs.consumer_refs:
-            value = acquire(ref, repo, env)                  # §9 ladder
-            for cand in reverse_index.lookup(value, env):    # §8
-                edge = DEPENDS_ON(repo → cand.repo, env,
-                                  provenance=declared|injected,
-                                  confidence=min(profile.conf, score(ref, cand)),
-                                  evidence=[ref.evidence, cand.evidence, value.rung])
-                persist(edge); if not expanded(cand.repo): enqueue(cand.repo)
+        evaluate_node(repo, env, mode)
     mark expanded(repo)
 ```
 
 Cycles handled via the `expanded` set (edges still recorded); per-environment inner loop; confidence inherits the weakest link; traversal anchor-bounded while the index is global.
 
-The pseudo-code above is the **structured-mode** path. By default (hybrid/agentic modes) the per-node step is not a fixed extractor sweep but an **LLM evaluation loop**: the model reads the repo's full evidence (source/API calls, configs, build, CI/CD, hosting), proposes the outward edges and the traversal frontier, and each proposal is **grounded** against the reverse index/connectors before it is trusted. The deterministic extractors, index, and acquisition ladder become the *tools the loop calls* and the *grounding that verifies it*. See §15.
+The structured-mode path above is the v0 default. In **hybrid mode** (the eventual default per §15.1), the structured path runs first as a fast path; the LLM evaluation loop (§15.2) handles only the unresolved and ambiguous results. In **agentic mode**, the LLM evaluates each node across all evidence. The deterministic extractors, index, and acquisition ladder become the *tools the loop calls* and the *grounding that verifies it*. See §15.
 
 ---
 
@@ -347,6 +390,8 @@ Every response carries confidence and provenance (`declared`/`injected`/`observe
 ## 14. Incremental updates, freshness, security
 
 - **Incremental.** VCS `push` → re-extract that repo, re-resolve its outbound edges and any provider identities it changed (may invalidate others' inbound edges). CI/CD change → re-evaluate affected deployables/envs. Scoped invalidation, not global rebuild. Per-node `last_indexed_ref`/`last_seen`.
+
+  **Scoped invalidation via `resolved_via` index (H4).** Each `DEPENDS_ON` edge stores a `resolved_via` list — the ids of the `ServiceIdentity` nodes whose reverse-index entries produced the match. On any provider-identity change (a `ServiceIdentity` is updated or removed), only edges whose `resolved_via` includes that identity are marked `stale: true`; they are not deleted. On the next traversal pass, stale edges are re-resolved: if they still hold they are cleared; if not they are removed. This bounds invalidation to the affected edges — a provider-identity change never triggers a full graph scan. New edges from the re-resolution pass inherit fresh `resolved_via` pointers.
 - **Security.** Read-only per-provider credentials from a central broker, short TTL, rotation, read audit across all systems. **Secret redaction before persistence** — store `{is_secret, resolved:bool}`, never values. The graph itself is sensitive (estate topology) — access-control the query layer and MCP.
 
 ---
@@ -364,6 +409,8 @@ The decisions at the heart of construction — *interpret a repo to find everyth
 ### 15.2 The evaluation loop (per node)
 
 At each repo the agent receives the repo's evidence (source/API calls, configs, build, CI/CD, hosting) and **read-only, grounded tools**, and pursues three prompt goals: (1) **enumerate outward references** — every API, host, queue, service, or artifact the repo reaches outside itself, each with an evidence locator; (2) **resolve/ground each** to a provider repo via tools, or mark unresolved; (3) **propose the frontier** — which discovered repos to evaluate next.
+
+**Evidence budget (M1).** Evidence is gathered within a per-call budget to control cost and context window usage: `max_files=20, max_bytes=50_000` (both configurable). Priority order for evidence selection within the budget: (1) CI/CD profile + attribution facts, (2) extractor output (consumer refs, provider identities, token decls), (3) deploy config and variable store contents (non-secret), (4) the N most-relevant source files ranked by extractor confidence. All selected evidence passes through the §15.5 pre-hook (redaction + residency gate) before any model call. If the budget is exceeded, lower-priority items are truncated; the model receives a `budget_truncated: true` flag in its context so it can abstain rather than guess on missing evidence.
 
 ```
 evaluate(repo, env):
@@ -414,11 +461,11 @@ The agent does **not** ingest whole repos into context — that doesn't scale an
 
 1. **Deploy-step detection coverage** — maintain a catalog of deploy-action signatures; unknown mechanisms degrade to "build owner only." Maintenance vs. flag-and-review policy.
 2. **Octopus without Config-as-Code** — repo→project link is indirect (artifact provenance); confirm reliability or require a mapping table.
-3. **Environment-name canonicalization** across providers (GitHub Environments / Octopus Environments / CircleCI contexts / TeamCity params / Bitbucket Deployments) — a canonical environment dictionary is a hard dependency of the resolver.
+3. ~~**Environment-name canonicalization**~~ **RESOLVED (v0).** Implemented as `EnvironmentCanonicalizer` (case-fold + configurable alias table in `data/environments_default.yaml`). Unmatched names → `raw-name` + low-confidence, never a failure. The canonicalizer is injected into both the traversal engine and the deployed-ref resolver so that provider env names (e.g. Octopus "Production") match canonical forms (e.g. "prod") transparently.
 4. **Identity collisions** (blue/green, shared gateway) — one identity, multiple owners, or distinct?
 5. **Graph store default** — Kùzu (embedded, low-ops) vs. Neo4j (tooling). Lean embedded unless concurrency demands otherwise.
 6. **Async edges** (queue/topic) — phase in v1 or later? Often the *missed* dependencies.
 7. **Confidence calibration** — needs a hand-labeled golden estate; telemetry provides a partial golden source.
-8. **Plugin ABI language** — settle the reference language (Python vs. TypeScript) for the conformance suite and the first community providers.
+8. ~~**Plugin ABI language**~~ **RESOLVED (v0).** Reference implementation language: **Python 3.12+** (Kùzu/LiteLLM/pytest first-class; `importlib.metadata` for plugin discovery). Non-Python plugins use subprocess JSON-RPC (`tendril-rpc/v1`) over stdin/stdout — newline-delimited JSON, no external transport. Plugin ABI: Python ABCs (`tendril/plugins/base.py`) + `tendril-plugin.toml` manifest. In-process for Python; subprocess bridge (`tendril/plugins/subprocess_bridge.py`) for other languages.
 9. **Dataflow/CPG engine (`IntraRepoProvider`)** — reuse vs. build, with license as the hard gate (must run on adopters' proprietary code). Grounded findings: **CodeQL** has deep dataflow but its engine **cannot run on closed-source code without a paid GitHub Advanced Security license** → excluded as a bundled default. **Joern** is Apache-2.0 and CPG-based but **C#/.NET is not first-class** (core: C/C++/Java/JS/Python/Kotlin). **Roslyn** (MIT) is the natural .NET engine. **Semgrep CE** is LGPL-2.1 but **intraprocedural only** (cross-file dataflow is Pro/paid, or the Opengrep fork). Likely answer: Roslyn (.NET) + Joern (cross-language) behind the provider, with reuse-adapters for existing tools and a degrade path. Full rubric in `prompt.md`.
 10. **Cross-language / cross-process stitching** — value flow that crosses a shell→.NET→JS boundary is the hard residue no single dataflow engine covers. Confirm the approach: grounded LLM stitching over per-language facts, runtime observation (telemetry/logs), or both, with explicit confidence penalties for stitched edges.

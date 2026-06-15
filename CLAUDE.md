@@ -41,7 +41,7 @@ When `PRD.md`/`SPEC.md` and code disagree, the docs are the source of truth — 
 
 ## Working conventions
 
-- **Reference language / ABI:** *TBD — set this on first scaffolding and keep it consistent across core, the conformance suite, and the first reference providers.* (`SPEC.md §17.8` open question.)
+- **Reference language / ABI:** **Python 3.12+.** Non-Python plugins use subprocess JSON-RPC (`tendril-rpc/v1`) over stdin/stdout. Plugin ABI: Python ABCs in `tendril/plugins/base.py` + `tendril-plugin.toml` manifest. (`SPEC.md §17.8` closed.)
 - **Graph store default:** prefer embedded **Kùzu** unless concurrency demands Neo4j; both behind the `GraphStore` plugin.
 - **Reproducibility:** where LLM judgment is used, run models at temperature 0 and cache/record decisions so re-runs reproduce; a deterministic **structured mode (no LLM)** must remain available. Regardless of mode, output ordering is deterministic — sort nodes/edges deterministically, and ground every edge.
 - **Evidence is mandatory:** every edge carries an `evidence[]` with concrete locators (`file:line`, `store:scope:key`, `run-id`). An edge with no evidence is a bug.

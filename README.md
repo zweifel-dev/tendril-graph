@@ -32,7 +32,7 @@ The first supported configuration is a real, non-trivial stack: an **ASP.NET Web
 
 ## Requirements
 
-- A runtime/host for Tendril-Graph (specifics fixed at scaffolding — see [CLAUDE.md](CLAUDE.md)).
+- **Python 3.12+** (the reference implementation language; see [CLAUDE.md](CLAUDE.md)).
 - **Read-only** credentials for each enabled provider (next section).
 - A graph store (embedded Kùzu by default; no external service required for v0).
 - Network reachability to each provider's API endpoint (self-hosted TeamCity/Octopus/Bitbucket DC included).
@@ -42,14 +42,18 @@ The first supported configuration is a real, non-trivial stack: an **ASP.NET Web
 
 All credentials are **read-only and least-privilege**, supplied via environment variables or your secret broker — never committed. Per provider:
 
-| Provider | Credential | How to obtain | Scopes (read-only) | Where it goes |
+| Provider | Credential | Where to create it | Scopes required (read-only) | Env vars |
 |---|---|---|---|---|
-| **GitHub** | GitHub App installation token (preferred) or fine-grained PAT | Create a GitHub App in the org → install on the target org(s) → use the installation token; or create a fine-grained PAT scoped to the org | Contents: Read, Metadata: Read (+ Actions/Variables/Environments: Read if using GitHub Actions later) | `GH_APP_ID` / `GH_INSTALL` (or `GH_TOKEN`) |
-| **Bitbucket** | Cloud: API token / OAuth · Data Center: HTTP access token | Cloud: create an API token in account settings (note: tokens expire hourly, refresh handled by the connector). DC: create a project/repo HTTP access token (requires DC license) | Repository: Read (+ webhook scope if managing incremental) | `BB_TOKEN` (+ `BB_BASE_URL` for DC) |
-| **TeamCity** | Access token (Bearer) | In TeamCity → your profile → Access Tokens → create, on a read-only service account | Read on build configs, VCS roots, parameters | `TC_BASE_URL`, `TC_TOKEN` |
-| **Octopus** | API key | In Octopus → profile → My API Keys → create, on a read-only service account; scope by Space | Read on deployments, releases, projects, variable sets, targets | `OCTO_URL`, `OCTO_API_KEY`, `OCTO_SPACE` |
-| **Telemetry** (optional) | Provider-specific (e.g. Datadog API + App key) | Per provider docs | Read: APM/service deps, catalog, events | provider-specific env vars |
-| **LLM** (optional) | BYOK for any OpenAI-compatible endpoint | Your gateway/model provider (LiteLLM, vLLM, Ollama, Azure, Bedrock, frontier) | n/a | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` |
+| **GitHub** | GitHub App *(preferred)* | Settings → Developer settings → GitHub Apps → New GitHub App. Set permissions, generate private key, install on target org(s). App ID is on the app settings page; Installation ID is in the install URL. | Contents: Read · Metadata: Read (+ Actions/Variables/Environments: Read for M7 GitHub Actions) | `GH_APP_ID`, `GH_INSTALL_ID`, `GH_PRIVATE_KEY_PATH` |
+| **GitHub** | Fine-grained PAT *(single-org alternative)* | Settings → Developer settings → Personal access tokens → Fine-grained tokens → set Resource owner to the org | Contents: Read · Metadata: Read | `GH_TOKEN` |
+| **Bitbucket Data Center** | HTTP access token | Profile icon → Manage account → Personal access tokens → Create token | Projects: Read · Repositories: Read | `BB_BASE_URL`, `BB_TOKEN` |
+| **Bitbucket Cloud** | App password | Avatar (bottom-left) → Personal settings → App passwords → Create app password | Repositories: Read | `BB_CLOUD_USERNAME`, `BB_CLOUD_TOKEN` |
+| **TeamCity** | Access token | Profile icon → Access Tokens → Create access token. Use a dedicated read-only service account. | Inherits account permissions — use an account scoped to View on build configs and VCS roots | `TC_BASE_URL`, `TC_TOKEN` |
+| **Octopus Deploy** | API key | Profile icon → My API Keys → New API Key. Use a service account in the built-in "Octopus Readers" team. Space ID is in the URL when viewing a Space (e.g. `Spaces-1`). | Read on deployments, releases, projects, variable sets, targets | `OCTO_URL`, `OCTO_API_KEY`, `OCTO_SPACE` |
+| **Datadog** *(optional)* | API key + App key | Organization settings → API Keys → New Key; Organization settings → Application Keys → New Key | App key scopes: `apm_service_catalog:read`, `metrics:read`, `logs:read` | `DD_API_KEY`, `DD_APP_KEY`, `DD_SITE` |
+| **LLM** *(optional)* | BYOK — any OpenAI-compatible gateway | Your provider: OpenAI, Azure OpenAI, Ollama, LiteLLM, AWS Bedrock via gateway, etc. | n/a | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` |
+
+> See **[`.env.example`](.env.example)** for step-by-step instructions for each provider, including exact UI paths and recommended service account setup.
 
 **Required access breadth:** read access must span **every org/workspace you want indexed** (Bitbucket workspaces *and* GitHub orgs), not just the anchor's — provider-identity indexing is global (see [SPEC §1.1](SPEC.md)). Confirm this access path early; it is often the longest lead-time item.
 
@@ -74,7 +78,7 @@ Tendril-Graph providers add teamcity  --base-url $TC_BASE_URL --token $TC_TOKEN
 Tendril-Graph providers add octopus   --url $OCTO_URL --api-key $OCTO_API_KEY --space $OCTO_SPACE
 # optional:
 Tendril-Graph providers add datadog   --site $DD_SITE
-Tendril-Graph providers add llm       --base-url $LLM_BASE_URL --model $LLM_MODEL   # BYOK, gateway-agnostic
+Tendril-Graph providers add llm       --base-url $LLM_BASE_URL --model $LLM_MODEL --api-key $LLM_API_KEY  # BYOK, gateway-agnostic
 
 # build the graph from an anchor, for an environment
 # (resolves the deployed SHA for that env from Octopus, reads config at that ref)
