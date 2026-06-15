@@ -221,6 +221,96 @@ class OctopusProvider(CICDProvider):
 
         return bindings
 
+    # ------------------------------------------------------------------
+    # Scope resolution helpers (M7-2)
+    # ------------------------------------------------------------------
+
+    def _scope_matches(
+        self,
+        var_scope: dict[str, str | None],
+        env: str,
+        role: str | None = None,
+        tenant: str | None = None,
+        channel: str | None = None,
+    ) -> bool:
+        """Return True if *var_scope* is compatible with the given env/role/etc.
+
+        A scope dimension that is absent in *var_scope* is treated as a wildcard
+        (matches any value).  A present dimension must match the requested value.
+        """
+        env_scope = var_scope.get("environment")
+        if env_scope:
+            env_scopes = {e.strip().lower() for e in env_scope.split(",")}
+            if env.lower() not in env_scopes:
+                return False
+
+        if role is not None:
+            role_scope = var_scope.get("role")
+            if role_scope:
+                role_scopes = {r.strip().lower() for r in role_scope.split(",")}
+                if role.lower() not in role_scopes:
+                    return False
+
+        if tenant is not None:
+            tenant_scope = var_scope.get("tenant")
+            if tenant_scope:
+                tenant_scopes = {t.strip().lower() for t in tenant_scope.split(",")}
+                if tenant.lower() not in tenant_scopes:
+                    return False
+
+        if channel is not None:
+            channel_scope = var_scope.get("channel")
+            if channel_scope:
+                channel_scopes = {c.strip().lower() for c in channel_scope.split(",")}
+                if channel.lower() not in channel_scopes:
+                    return False
+
+        return True
+
+    def _best_match(
+        self,
+        candidates: list[VarEntry],
+        env: str,
+    ) -> VarEntry | list[VarEntry]:
+        """Select the best-scoped variable from *candidates* for *env*.
+
+        Priority (highest first): env-scoped > role-scoped > tenant-scoped >
+        channel-scoped > unscoped.  Within the same priority tier, the entry
+        with the most scope dimensions set wins.  An exact tie returns all
+        tied entries so the caller can emit ``ambiguous=True``.
+        """
+        compatible = [c for c in candidates if self._scope_matches(c.scope, env)]
+        if not compatible:
+            # Fall back to unscoped entries.
+            compatible = [c for c in candidates if not any(c.scope.values())]
+        if not compatible:
+            compatible = candidates  # last resort
+
+        def _rank(entry: VarEntry) -> tuple[int, int]:
+            scope = entry.scope
+            priority = 0
+            dimensions = 0
+            if scope.get("environment"):
+                priority = max(priority, 4)
+                dimensions += 1
+            if scope.get("role"):
+                priority = max(priority, 3)
+                dimensions += 1
+            if scope.get("tenant"):
+                priority = max(priority, 2)
+                dimensions += 1
+            if scope.get("channel"):
+                priority = max(priority, 1)
+                dimensions += 1
+            return (priority, dimensions)
+
+        max_rank = max(_rank(c) for c in compatible)
+        best = [c for c in compatible if _rank(c) == max_rank]
+
+        if len(best) == 1:
+            return best[0]
+        return best  # tied — caller must handle ambiguity
+
     def read_variable_store(
         self,
         pipeline_or_project: str,
@@ -231,12 +321,19 @@ class OctopusProvider(CICDProvider):
         Octopus variables carry a rich scoping model (environment, role,
         tenant, channel).  Sensitive variables have their value masked:
         ``value=None, is_secret=True`` (NFR-1).
+
+        When *env* is provided, ``_best_match()`` selects the highest-priority
+        scoped entry per variable name.  Exact ties are returned with
+        ``scope["_ambiguous"] = "true"`` so callers can detect ambiguous
+        resolution (M7-2).
         """
         data = self._get_json(
             f"{self._api_prefix()}/variables/{pipeline_or_project}",
             fixture_key=f"variables_{pipeline_or_project}",
         )
-        entries: list[VarEntry] = []
+
+        # Parse all variable entries, grouped by name.
+        by_name: dict[str, list[VarEntry]] = {}
         for var in data.get("Variables", []):
             is_sensitive = bool(var.get("IsSensitive", False))
             scope_obj = var.get("Scope", {})
@@ -247,23 +344,34 @@ class OctopusProvider(CICDProvider):
                 if vals:
                     scope[scope_key.lower()] = ",".join(str(v) for v in vals)
 
-            # If caller requested a specific env, skip variables that are
-            # scoped to a different environment.
-            env_scope_val = scope.get("environment")
-            if env and env_scope_val:
-                env_scopes = {e.strip().lower() for e in env_scope_val.split(",")}
-                if env.lower() not in env_scopes:
-                    continue
-
-            entries.append(
-                VarEntry(
-                    key=var.get("Name", ""),
-                    value=None if is_sensitive else var.get("Value"),
-                    is_secret=is_sensitive,
-                    readable=not is_sensitive,
-                    scope=scope,
-                )
+            entry = VarEntry(
+                key=var.get("Name", ""),
+                value=None if is_sensitive else var.get("Value"),
+                is_secret=is_sensitive,
+                readable=not is_sensitive,
+                scope=scope,
             )
+            by_name.setdefault(entry.key, []).append(entry)
+
+        if not env:
+            # No env filter — return all entries as-is.
+            return VariableStore(
+                kind="octopus-variable-set",
+                entries=[e for group in by_name.values() for e in group],
+                scoping_model="environment,role,tenant,channel",
+            )
+
+        # Apply best-match scoping per variable name.
+        entries: list[VarEntry] = []
+        for _name, group in by_name.items():
+            result = self._best_match(group, env)
+            if isinstance(result, list):
+                # Tied — emit all tied candidates with ambiguous marker.
+                for tied_entry in result:
+                    tied_entry.scope["_ambiguous"] = "true"
+                    entries.append(tied_entry)
+            else:
+                entries.append(result)
 
         return VariableStore(
             kind="octopus-variable-set",

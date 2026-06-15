@@ -1,0 +1,10 @@
+{
+  "from_id": "bitbucket-dc:acme/webforms-solution",
+  "to_id": "github:acme/landing-page-ui",
+  "env": "prod",
+  "provenance": "injected",
+  "confidence": "high",
+  "deployed_ref": "abc123def456",
+  "evidence_contains": ["home.aspx", "appsettings.prod.json", "octopus"],
+  "unknowns": []
+}

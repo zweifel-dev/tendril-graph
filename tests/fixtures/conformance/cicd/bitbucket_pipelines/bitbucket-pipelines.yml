@@ -1,0 +1,16 @@
+image: node:20
+
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Build and Test
+          script:
+            - npm ci
+            - npm run build
+            - npm test
+      - step:
+          name: Deploy to Staging
+          deployment: staging
+          script:
+            - npm run deploy:staging
