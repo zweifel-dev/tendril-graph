@@ -1,0 +1,6 @@
+[
+  {"path": "src/index.html", "type": "file", "size": 300},
+  {"path": "package.json", "type": "file", "size": 200},
+  {"path": ".env.production", "type": "file", "size": 50},
+  {"path": ".github/workflows/deploy.yml", "type": "file", "size": 300}
+]

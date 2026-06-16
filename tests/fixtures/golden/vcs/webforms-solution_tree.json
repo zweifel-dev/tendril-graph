@@ -1,0 +1,8 @@
+[
+  {"path": "home.aspx", "type": "file", "size": 500},
+  {"path": "web.config", "type": "file", "size": 400},
+  {"path": "appsettings.json", "type": "file", "size": 100},
+  {"path": "appsettings.prod.json", "type": "file", "size": 80},
+  {"path": "WebApp.csproj", "type": "file", "size": 300},
+  {"path": ".teamcity/settings.kts", "type": "file", "size": 200}
+]

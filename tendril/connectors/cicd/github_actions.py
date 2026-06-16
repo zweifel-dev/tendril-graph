@@ -120,8 +120,57 @@ class GitHubActionsProvider(CICDProvider):
         pipeline_or_project: str,
         env: str | None,
     ) -> VariableStore:
-        """Return an empty variable store (no API access in v0)."""
-        return VariableStore(kind="github-actions", entries=[], scoping_model="github-environments")
+        """Load vars from fixture file when available; otherwise return empty store.
+
+        Fixture file: ``{fixture_dir}/vars_{env}.json``
+        Expected format::
+
+            {
+              "vars": {"KEY": "value", ...},
+              "secrets": ["SECRET_NAME", ...]
+            }
+
+        ``vars.*`` entries are readable; ``secrets.*`` entries are masked
+        (value=``"[MASKED]"``, is_secret=True).  Live API access is deferred to v1.
+        """
+        import json
+
+        entries: list[VarEntry] = []
+
+        if self._fixture_dir is not None and env is not None:
+            fixture_path = self._fixture_dir / f"vars_{env}.json"
+            if fixture_path.exists():
+                try:
+                    data = json.loads(fixture_path.read_bytes())
+                    scope: dict[str, str | None] = {"env": env}
+                    for key, value in data.get("vars", {}).items():
+                        entries.append(
+                            VarEntry(
+                                key=key,
+                                value=str(value),
+                                is_secret=False,
+                                readable=True,
+                                scope=scope,
+                            )
+                        )
+                    for secret_name in data.get("secrets", []):
+                        entries.append(
+                            VarEntry(
+                                key=secret_name,
+                                value="[MASKED]",
+                                is_secret=True,
+                                readable=False,
+                                scope=scope,
+                            )
+                        )
+                except Exception as exc:
+                    log.debug("Could not load vars fixture %s: %s", fixture_path, exc)
+
+        return VariableStore(
+            kind="github-actions",
+            entries=entries,
+            scoping_model="github-environments",
+        )
 
     def read_provider_identities(
         self,

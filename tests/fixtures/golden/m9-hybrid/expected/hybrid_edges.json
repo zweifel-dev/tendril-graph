@@ -1,0 +1,9 @@
+[
+  {
+    "from_id": "github:myorg/anchor-repo",
+    "to_id": "github:myorg/sidecar-service",
+    "env": "prod",
+    "provenance": "llm-judged",
+    "confidence": "low"
+  }
+]

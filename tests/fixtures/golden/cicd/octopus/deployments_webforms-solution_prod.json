@@ -1,0 +1,17 @@
+[
+  {
+    "EnvironmentName": "Production",
+    "ProjectId": "Projects-1",
+    "Created": "2024-01-15T10:30:00Z",
+    "TaskId": "ServerTasks-3217",
+    "ReleaseVersion": "1.2.3",
+    "Release": {
+      "BuildInformation": [
+        {
+          "VcsCommitNumber": "abc123def456",
+          "Branch": "main"
+        }
+      ]
+    }
+  }
+]

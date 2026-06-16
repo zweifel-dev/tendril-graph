@@ -1,0 +1,12 @@
+[
+  {
+    "consumer_ref_id": "SIDECAR_URL",
+    "reason": "not-found",
+    "decision_type": "UNRESOLVED_REF",
+    "from_id": "github:myorg/anchor-repo",
+    "env": "prod",
+    "evidence": [
+      {"source_type": "cicd", "locator": "github_actions:anchor-repo:SIDECAR_URL", "key": "SIDECAR_URL", "value": "https://sidecar.internal", "is_secret": false}
+    ]
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "data": [
+    {"from_service": "web-app", "to_service": "api-gateway", "env": "staging"},
+    {"from_service": "web-app", "to_service": "mock-payment", "env": "staging"}
+  ]
+}

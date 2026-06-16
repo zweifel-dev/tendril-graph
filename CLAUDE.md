@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Tendril-Graph has M0–M4 milestones verified. All 68 tests pass. Includes conformance suites for GitHub, Bitbucket DC, TeamCity, and Octopus; rung 4 deploy-log harvesting; and SC-003-exact end-to-end assertions. Read this file every session before touching anything.
+Tendril-Graph has M0–M10 complete with all known gaps resolved. All 199+ tests pass. Includes conformance suites for GitHub, Bitbucket DC, TeamCity, Octopus, GitHub Actions, Bitbucket Pipelines, Roslyn IntraRepo, LLM provider/redactor, and Datadog telemetry; rung 4 deploy-log harvesting; SC-003-exact end-to-end assertions; golden fixture integration test; full query engine + MCP server; CLI graph build wired to TraversalEngine; M8 Roslyn IntraRepoProvider with SubprocessBridge (tendril-rpc/v1) wired as rung-0 in TraversalEngine; M9 LLM hybrid mode with LLMJudge post-processor (tendril/llm/), OpenAI-compatible provider (tendril/connectors/llm/), secret redaction + residency gate, SHA-256 disk response cache, three versioned prompt contracts, and grounding step; M10 Datadog telemetry cross-validation with CrossValidator three-way reconciliation (tendril/core/cross_validate.py), DatadogTelemetryProvider with APM/traces/logs/RUM (tendril/connectors/telemetry/), SERVICE_TAG identity class, FR-023 two-step resolution, FR-010 evidence deduplication, FR-013 secret redaction, fixture-mode zero-credential CI, and `tendril telemetry reconcile` CLI command. Read this file every session before touching anything.
 
 ## What Tendril-Graph is
 
@@ -82,8 +82,7 @@ Build the **real v0 vertical slice** end-to-end before breadth: an **ASP.NET Web
 - Don't reduce the projection join to name-matching, or the global index to an anchor-only walk.
 
 <!-- SPECKIT START -->
-/speckit.specify ➔ /speckit.clarify ➔ /speckit.checklist ➔ /speckit.plan ➔ /speckit.tasks ➔ /speckit.implement
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/001-m0-m4-verify/plan.md
+at -a
 <!-- SPECKIT END -->

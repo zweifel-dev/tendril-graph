@@ -48,7 +48,8 @@ SCHEMA_DDL = [
     "CREATE REL TABLE IF NOT EXISTS DEPENDS_ON("
     "FROM Deployable TO Deployable, "
     "env STRING, provenance STRING, confidence STRING, evidence STRING, "
-    "discovered_at STRING, deployed_ref STRING, ambiguous BOOLEAN, stale BOOLEAN)",
+    "discovered_at STRING, deployed_ref STRING, ambiguous BOOLEAN, stale BOOLEAN, "
+    "llm_trace STRING)",
 
     "CREATE REL TABLE IF NOT EXISTS EXPOSES("
     "FROM Deployable TO Endpoint, "

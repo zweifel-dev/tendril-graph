@@ -1,0 +1,42 @@
+{
+  "def_use": {
+    "LandingPageUrl": ["web.config:LandingPageUrl"],
+    "LogLevel": ["appsettings.json:Logging:LogLevel:Default"],
+    "DefaultConnection": ["appsettings.prod.json:ConnectionStrings:DefaultConnection"]
+  },
+  "value_sets": {
+    "LandingPageUrl": [
+      {
+        "value": "https://d-ui.prod.example.com",
+        "source": "web.config:LandingPageUrl",
+        "condition": null,
+        "layer": 1
+      }
+    ],
+    "LogLevel": [
+      {
+        "value": "Warning",
+        "source": "appsettings.json:Logging:LogLevel:Default",
+        "condition": null,
+        "layer": 1
+      }
+    ],
+    "DefaultConnection": [
+      {
+        "value": "Server=prod-db;Database=AppDb;Trusted_Connection=True;",
+        "source": "appsettings.prod.json:ConnectionStrings:DefaultConnection",
+        "condition": "appsettings.prod.json",
+        "layer": 1
+      }
+    ]
+  },
+  "call_graph": null,
+  "partial_analysis": true,
+  "truncated": false,
+  "skipped_files": [
+    {
+      "path": "src/AppConfig.cs",
+      "reason": "workspace-load-failed"
+    }
+  ]
+}

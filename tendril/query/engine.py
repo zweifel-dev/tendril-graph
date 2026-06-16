@@ -425,6 +425,7 @@ class QueryEngine:
         from_id: str,
         to_id: str,
         env: str,
+        cache_path: str | None = None,
     ) -> QueryResult:
         from_did = self._repo_id_to_did(from_id) or from_id
         to_did = self._repo_id_to_did(to_id) or to_id
@@ -434,7 +435,8 @@ class QueryEngine:
             "WHERE a.id = $from_id AND b.id = $to_id AND r.env = $env "
             "RETURN b.repo_id AS to_repo_id, r.confidence AS conf, "
             "r.provenance AS prov, r.deployed_ref AS dref, "
-            "r.evidence AS ev, r.ambiguous AS amb, r.stale AS stale",
+            "r.evidence AS ev, r.ambiguous AS amb, r.stale AS stale, "
+            "r.llm_trace AS ltrace",
             {"from_id": from_did, "to_id": to_did, "env": env},
         )
 
@@ -460,10 +462,27 @@ class QueryEngine:
         ambiguous = bool(row.get("amb", False))
         stale = bool(row.get("stale", False))
         to_repo_id = row.get("to_repo_id") or to_id
+        ltrace = row.get("ltrace") or None
 
         deployed_refs: dict[str, str] = {}
         if dref:
             deployed_refs[to_repo_id] = dref
+
+        # Load reasoning trace from disk if available (M9 FR-020)
+        trace_data: dict | None = None
+        if ltrace and cache_path:
+            import json as _json
+            from pathlib import Path as _Path
+            trace_file = _Path(cache_path).expanduser() / "traces" / f"{ltrace}.json"
+            if trace_file.exists():
+                try:
+                    trace_data = _json.loads(trace_file.read_bytes())
+                except (OSError, _json.JSONDecodeError):
+                    log.warning("Could not load reasoning trace %s", ltrace)
+                    trace_data = {"error": "trace-file-unreadable"}
+            else:
+                log.warning("Reasoning trace file missing: %s", trace_file)
+                trace_data = {"error": "trace-file-missing"}
 
         return QueryResult(
             operation="explain_edge",
@@ -476,7 +495,7 @@ class QueryEngine:
                 "evidence": evidence,
                 "ambiguous": ambiguous,
                 "stale": stale,
-                "llm_trace": None,
+                "llm_trace": trace_data,
             }],
             confidence=conf,
             provenance=prov,

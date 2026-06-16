@@ -212,18 +212,29 @@ async def explain_edge(
 
 
 # ---------------------------------------------------------------------------
-# Custom 503 exception handler
+# Custom exception handlers (404, 400, 503)
 # ---------------------------------------------------------------------------
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse as _JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 
-@app.exception_handler(503)
-async def service_unavailable_handler(request: Any, exc: Any) -> _JSONResponse:
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Any, exc: StarletteHTTPException) -> _JSONResponse:
+    if exc.status_code == 404:
+        return _JSONResponse(
+            status_code=404,
+            content={"error": {"code": 404, "message": "Not Found"}},
+        )
+    if exc.status_code == 503:
+        return _JSONResponse(
+            status_code=503,
+            content={"error": {"code": 503, "message": "Graph store unavailable"}},
+        )
     return _JSONResponse(
-        status_code=503,
-        content={"error": {"code": 503, "message": "Graph store unavailable"}},
+        status_code=exc.status_code,
+        content={"error": {"code": exc.status_code, "message": str(exc.detail)}},
     )
 
 

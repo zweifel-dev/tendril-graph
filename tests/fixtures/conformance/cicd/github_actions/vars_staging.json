@@ -1,0 +1,10 @@
+{
+  "vars": {
+    "REACT_APP_API_URL": "https://api.staging.example.com",
+    "DEPLOY_ENV": "staging"
+  },
+  "secrets": [
+    "DEPLOY_TOKEN",
+    "REGISTRY_PASSWORD"
+  ]
+}

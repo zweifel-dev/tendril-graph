@@ -25,10 +25,12 @@ from tendril.models.ir import (
     FileEntry,
     Provenance,
     RepoRef,
+    ResolvedValue,
     TokenDecl,
+    Unresolved,
 )
 from tendril.models.graph import DependsOn
-from tendril.plugins.base import ExtractorPlugin, ExtractionResult
+from tendril.plugins.base import ExtractorPlugin, ExtractionResult, IntraRepoProvider
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +54,7 @@ class TraversalEngine:
         ref_resolver: DeployedRefResolver,
         env_canonicalizer: EnvironmentCanonicalizer,
         vcs_read_file: Any = None,
+        intra_repo_providers: list[IntraRepoProvider] | None = None,
     ) -> None:
         self._attribution = attribution
         self._extractors = extractors
@@ -60,6 +63,7 @@ class TraversalEngine:
         self._ref_resolver = ref_resolver
         self._env_canon = env_canonicalizer
         self._read_file = vcs_read_file
+        self._intra_repo_providers: list[IntraRepoProvider] = intra_repo_providers or []
         # Wire env canonicalizer into the deployed-ref resolver so it can
         # match provider env names ("Production") to canonical forms ("prod").
         if hasattr(ref_resolver, '_env_canon') and ref_resolver._env_canon is None:
@@ -113,6 +117,46 @@ class TraversalEngine:
                         token = _find_token(extraction.token_decls, token_name)
                         if not token:
                             continue
+
+                        # Rung 0: IntraRepoProvider pre-ladder resolution (FR-M8-011)
+                        intra_result = self._resolve_token(
+                            token_name, repo, tree, repo_key, canon_env,
+                        )
+                        if isinstance(intra_result, ResolvedValue) and intra_result.resolved:
+                            # Use the intra-repo value as the resolved token value
+                            resolved_value = _apply_token_to_ref(
+                                consumer_ref.raw_value, token_name, intra_result.value or "",
+                            )
+                            candidates = self._index.lookup(resolved_value, canon_env)
+                            if not candidates:
+                                host = _extract_host(resolved_value)
+                                if host and host != resolved_value:
+                                    candidates = self._index.lookup(host, canon_env)
+                            chain = intra_result.def_use_chain or []
+                            intra_evidence = [
+                                Evidence(
+                                    source_type="intra-repo",
+                                    locator=loc,
+                                )
+                                for loc in chain
+                            ]
+                            for cand in candidates:
+                                edge = DependsOn(
+                                    from_id=repo_key,
+                                    to_id=cand.repo_full_name,
+                                    env=canon_env,
+                                    provenance=Provenance.DECLARED,
+                                    confidence=Confidence.HIGH,
+                                    evidence=list(consumer_ref.evidence) + intra_evidence,
+                                    deployed_ref=ref_str,
+                                    resolved_via=[intra_result.value or ""],
+                                )
+                                result.edges.append(edge)
+                                target_repo = _repo_from_full_name(cand.repo_full_name)
+                                if target_repo and cand.repo_full_name not in result.expanded:
+                                    queue.append(target_repo)
+                            if candidates:
+                                continue  # skip acquisition ladder for this token
 
                         acquired = self._resolver.acquire(
                             token=token,
@@ -220,6 +264,34 @@ class TraversalEngine:
                             result.edges.append(edge)
 
         return result
+
+    def _resolve_token(
+        self,
+        token_name: str,
+        repo: RepoRef,
+        tree: list[FileEntry],
+        repo_path: str,
+        env: str,
+    ) -> ResolvedValue | Unresolved | None:
+        """Rung-0: consult registered IntraRepoProviders before the acquisition ladder.
+
+        Returns ResolvedValue on success, Unresolved on miss/failure, or None if
+        no provider matched or all were skipped (FR-M8-011 / CHK027).
+        """
+        for provider in self._intra_repo_providers:
+            try:
+                if not provider.capabilities().get("def_use"):
+                    continue
+                if not provider.matches(tree):
+                    continue
+                result = provider.resolve_value(repo_path, token_name)
+                return result
+            except Exception as exc:  # noqa: BLE001
+                log.warning(
+                    "IntraRepoProvider %s failed for %s/%s: %s",
+                    provider.id(), repo.full_name, token_name, exc,
+                )
+        return None
 
     def _run_extractors(
         self, repo: RepoRef, tree: list[FileEntry], ref: str = "HEAD",

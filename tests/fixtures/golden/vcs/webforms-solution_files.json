@@ -1,0 +1,6 @@
+{
+  "home.aspx": "<%@ Page Language=\"VB\" %>\n<html>\n<body>\n<iframe src=\"{landing-page-url}/dashboard-ui\"></iframe>\n</body>\n</html>",
+  "web.config": "<?xml version=\"1.0\"?>\n<configuration>\n  <appSettings>\n    <add key=\"landing-page-url\" value=\"\" />\n  </appSettings>\n</configuration>",
+  "appsettings.json": "{\"LandingPageUrl\": \"\"}",
+  "appsettings.prod.json": "{\"LandingPageUrl\": \"https://d-ui.prod.example.com\"}"
+}

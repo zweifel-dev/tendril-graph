@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>TendrilRoslyn</AssemblyName>
+    <RootNamespace>TendrilRoslyn</RootNamespace>
+    <!-- Suppress NuGet informational output to stdout (must go to stderr only) -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Roslyn analysis (syntactic + semantic) -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.9.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.9.2" />
+    <!-- MSBuild discovery — MUST call RegisterDefaults() before any workspace type loads -->
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.7.8" />
+  </ItemGroup>
+
+</Project>

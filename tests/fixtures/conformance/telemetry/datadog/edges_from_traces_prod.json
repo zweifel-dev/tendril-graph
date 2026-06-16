@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "service": "web-app",
+        "span_kind": "client",
+        "peer_service": "cache-service",
+        "env": "prod"
+      }
+    },
+    {
+      "attributes": {
+        "service": "api-gateway",
+        "span_kind": "client",
+        "peer_service": "auth-service",
+        "env": "prod"
+      }
+    }
+  ]
+}

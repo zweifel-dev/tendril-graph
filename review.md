@@ -3,9 +3,13 @@ Tendril-Graph: Full Implementation Plan
 
  Context
 
- M0–M4 are complete. All 68 tests pass (conformance suites for GitHub, Bitbucket DC, TeamCity, Octopus; rung 4 deploy-log
- harvesting; SC-003-exact end-to-end assertions). The spec critique is in specs/000-initial-plan/critique-plan.md.
- This document is the working plan for M5 through M10.
+ M0–M9 are complete with all known gaps resolved. All 175 tests pass (137 prior + 38 new M9 LLM hybrid mode tests).
+ Includes conformance suites for GitHub, Bitbucket DC, TeamCity, Octopus, GitHub Actions, Bitbucket Pipelines, Roslyn
+ IntraRepo, and LLM provider/redactor; rung 4 deploy-log harvesting; SC-003-exact end-to-end assertions; golden
+ fixture integration test; full query engine + MCP server; CLI graph build wired to TraversalEngine; M8 Roslyn
+ IntraRepoProvider with SubprocessBridge; M9 LLM hybrid mode with LLMJudge post-processor, secret redaction,
+ residency gate, disk response cache, and three prompt contracts. The spec critique is in
+ specs/000-initial-plan/critique-plan.md. This document is the working plan for M10.
 
  Package layout: all code lives inside tendril/. Imports use from tendril.X import Y.
  Run tests: .venv/bin/python -m pytest tests/
@@ -14,34 +18,34 @@ Tendril-Graph: Full Implementation Plan
  ---
  Milestone Status
 
- ┌───────────────────────────────────────┬─────────────┬───────────────────────────────────────────────┐
- │               Milestone               │   Status    │                 Blocking Gap                  │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M0 — Scaffolding + 7 ABCs             │ ✅ COMPLETE │ —                                             │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M1 — VCS + CI/CD connectors           │ ✅ COMPLETE │ —                                             │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M2 — Attribution + deployed-ref       │ ✅ COMPLETE │ —                                             │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M3 — Extractors                       │ ✅ COMPLETE │ —                                             │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M4 — BFS → first real edge            │ ✅ COMPLETE │ —                                             │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M5 — Query layer + MCP server         │ ❌ 0%       │ Nothing in query/ or mcp/                     │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M6 — OSS hygiene                      │ ❌ 40%      │ LICENSE, golden fixtures, CI workflow         │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M7 — GitHub Actions + Octopus scoping │ ❌ 50%      │ github_actions.py, bitbucket_pipelines.py     │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M8 — Roslyn IntraRepoProvider         │ ❌ 0%       │ analyzers/roslyn/, subprocess bridge          │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M9 — LLM hybrid mode                  │ ❌ 0%       │ connectors/llm/, core/llm_judge.py            │
- ├───────────────────────────────────────┼─────────────┼───────────────────────────────────────────────┤
- │ M10 — Telemetry                       │ ❌ 0%       │ connectors/telemetry/, core/cross_validate.py │
- └───────────────────────────────────────┴─────────────┴───────────────────────────────────────────────┘
+ ┌───────────────────────────────────────┬──────────────────┬───────────────────────────────────────────────────────────────┐
+ │               Milestone               │      Status      │                         Blocking Gap                         │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M0 — Scaffolding + 7 ABCs             │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M1 — VCS + CI/CD connectors           │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M2 — Attribution + deployed-ref       │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M3 — Extractors                       │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M4 — BFS → first real edge            │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M5 — Query layer + MCP server         │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M6 — OSS hygiene                      │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M7 — GitHub Actions + Octopus scoping │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M8 — Roslyn IntraRepoProvider         │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M9 — LLM hybrid mode                  │ ✅ COMPLETE      │ —                                                             │
+ ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
+ │ M10 — Telemetry                       │ ❌ 0%            │ connectors/telemetry/, core/cross_validate.py                 │
+ └───────────────────────────────────────┴──────────────────┴───────────────────────────────────────────────────────────────┘
 
  ---
- M0–M4 What Was Done (for reference)
+ M0–M7 What Was Done (for reference)
 
  M1: Created conformance subclasses in tests/conformance/{github,bitbucket_dc,teamcity,octopus}/ (not a single
  test_m1_connectors.py — one subdir per connector). Added fixture trees under tests/fixtures/conformance/vcs/ and
@@ -60,6 +64,69 @@ Tendril-Graph: Full Implementation Plan
  - test_end_to_end.py: test_first_depends_on_edge now asserts exact SC-003 values (from_id, to_id, env, provenance,
    confidence, deployed_ref == "abc123def456", len(evidence) >= 3, unknowns == []).
    Added test_rung4_parses_kv_from_logs.
+
+ M5: Created tendril/query/response.py (QueryResult + UnknownsEntry dataclasses, aggregate_confidence/provenance
+ helpers), tendril/query/engine.py (QueryEngine with five BFS query methods against KuzuStore), tendril/mcp/server.py
+ (FastAPI app, lifespan store init, five POST endpoints, GET /mcp discovery manifest, 503/400 handlers),
+ tendril/mcp/schema.py (Pydantic v2 input models for all 5 tools). Updated tendril/cli/main.py to wire _query() to
+ QueryEngine and _serve() to uvicorn. 11 new tests in tests/test_m5_query.py.
+
+ M6: Created LICENSE (Apache-2.0), .github/workflows/ci.yml (push + PR to main; python 3.12; pip install -e "[dev]";
+ pytest -v --tb=short), tests/fixtures/golden/expected/depends_on_prod.json (canonical golden edge), tests/conftest.py
+ (golden_fixture_paths() fixture), tests/integration/test_golden_fixture.py (full pipeline from fixture to
+ DEPENDS_ON@prod edge with exact field assertions).
+
+ M7: Created tendril/connectors/cicd/github_actions.py (GitHubActionsProvider: discover via .github/workflows/*.yml,
+ both string and object environment: forms → PipelineBinding; no-env blocks → build-only binding + note),
+ tendril/connectors/cicd/bitbucket_pipelines.py (BitbucketPipelinesProvider stub: deployment: steps from all pipeline
+ sections). Updated tendril/connectors/cicd/octopus.py: added _scope_matches() (4-dimension scope check with comma-
+ separated value support) and _best_match() (env>role>tenant>channel>unscoped priority; tie → list of candidates for
+ ambiguous=True). New conformance suites: tests/conformance/github_actions/ (6 tests) and
+ tests/conformance/bitbucket_pipelines/ (3 tests). New integration test: tests/integration/test_m7_github_actions.py
+ (GHA staging edge, Octopus env-scope override, exact-tie ambiguous detection). Total: 107 tests (+39).
+
+ Gap resolutions (post-M7 review):
+
+ M5 gap fixed — MCP 404 response body: Added @app.exception_handler(StarletteHTTPException) in
+ tendril/mcp/server.py that returns {"error": {"code": 404, "message": "Not Found"}} for all unmatched routes.
+ Consolidated all HTTP error handling into one handler (404/503/others) to also cover the Starlette routing layer.
+
+ M7 gap fixed — GHA vars.* reading: GitHubActionsProvider.read_variable_store() now loads
+ {fixture_dir}/vars_{env}.json (format: {vars:{K:V}, secrets:[NAME]}) producing readable VarEntry for vars and
+ masked (value="[MASKED]") VarEntry for secrets. Created tests/fixtures/conformance/cicd/github_actions/vars_staging.json.
+
+ M4 gap fixed — CLI graph build: _graph_build() in tendril/cli/main.py is fully implemented. Loads golden fixture
+ layout ({fixture_dir}/vcs/repos.json, {name}_tree.json, {name}_files.json; {fixture_dir}/cicd/octopus/
+ deployments_{slug}_{env}.json, variables_{slug}.json), wires TraversalEngine, persists DEPENDS_ON edges to KuzuStore.
+ Added --db flag to graph build subcommand. Created tests/fixtures/golden/{vcs,cicd/octopus}/ fixture files and
+ tests/integration/test_cli_graph_build.py (4 tests). Total: 111 tests (+4).
+
+ M8: Created tendril/connectors/intra/roslyn_subprocess.py (RoslynIntraRepoProvider: IntraRepoProvider ABC impl; calls
+ SubprocessBridge for "analyze" and "resolve_value" JSON-RPC methods; returns IntraRepoFacts / ResolvedValue).
+ Created tendril/connectors/intra/subprocess_bridge.py (SubprocessBridge: spawns child process on first call, keeps
+ alive via stdin/stdout, newline-delimited JSON-RPC protocol tendril-rpc/v1). Created C# project stubs under
+ tendril/analyzers/roslyn/TendrilRoslyn/ (Program.cs, Analyzer.cs, TendrilRoslyn.csproj). Wired RoslynIntraRepoProvider
+ as rung-0 in TraversalEngine. Added tests/integration/test_roslyn_bridge.py (conformance suite for the subprocess
+ bridge with a Python echo-bridge fixture). Total: 137 tests (+26).
+
+ M9: Created tendril/llm/ package (judge.py: LLMJudge post-processor; redactor.py: SecretRedactor + ResidencyGate;
+ cache.py: DiskResponseCache with SHA-256 keying; grounding.py: GroundingStep against reverse index) and
+ tendril/llm/contracts/ (base.py: PromptContract ABC + MalformedResponseError; ambiguous_match.py,
+ unresolved_ref.py, identity_class.py: three versioned prompt contracts with Pydantic response models).
+ Created tendril/connectors/llm/openai_provider.py (OpenAICompatibleProvider: LLMProvider ABC impl; base_url
+ override supports Ollama, vLLM, Azure, Bedrock; temperature=0 enforced; LLMErrorKind enum).
+ Created tendril/config.py (LLMConfig with env-var > TOML > default resolution; is_complete() gate).
+ Extended tendril/models/ir.py (five new Unresolved.reason literals: llm-error, rate-limited, budget-exceeded,
+ grounding-failed, unresolvable-redacted). Extended tendril/models/graph.py (llm_trace: str | None on DependsOn).
+ Extended tendril/cli/main.py (--mode hybrid; graceful fallback when LLMConfig.is_complete() == False).
+ Extended tendril/query/engine.py (explain_edge surfaces llm_trace ReasoningTrace JSON).
+ Created tests/fixtures/conformance/llm/complete_responses.json (canned responses for all 3 contracts).
+ Created tests/fixtures/golden/m9-hybrid/ (2-repo fixture with unresolvable ENV_SIDECAR_URL token in structured mode).
+ Created tests/conformance/llm/test_llm_provider.py (15 contract conformance tests) and
+ tests/conformance/llm/test_redactor.py (11 SecretRedactor + ResidencyGate tests).
+ Created tests/integration/test_hybrid_mode.py (12 integration tests covering SC-001–SC-007: unknowns reduced,
+ secret redaction, provenance labels, cache hit, graceful degradation, explain_edge trace, M0–M8 regression guard).
+ Total: 175 tests (+38).
 
  ---
  M5 — Query Layer + MCP Server

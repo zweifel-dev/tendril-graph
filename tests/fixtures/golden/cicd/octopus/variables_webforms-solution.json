@@ -1,0 +1,8 @@
+[
+  {
+    "key": "landing-page-url",
+    "value": "https://d-ui.prod.example.com",
+    "scope": {"env": "prod"},
+    "is_secret": false
+  }
+]

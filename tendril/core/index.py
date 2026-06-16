@@ -84,6 +84,8 @@ class ReverseIndex:
 def _normalize(value: str, identity_class: IdentityClass) -> str:
     if identity_class == IdentityClass.NETWORK:
         return _normalize_url(value)
+    if identity_class == IdentityClass.SERVICE_TAG:
+        return value.strip()  # preserve case per FR-023
     return value.lower().strip()
 
 
@@ -112,6 +114,7 @@ def _class_confidence(identity_class: IdentityClass) -> Confidence:
         IdentityClass.DEPLOY: Confidence.HIGH,
         IdentityClass.ARTIFACT: Confidence.HIGH,
         IdentityClass.NETWORK: Confidence.HIGH,
+        IdentityClass.SERVICE_TAG: Confidence.HIGH,
         IdentityClass.LOGICAL: Confidence.MEDIUM,
         IdentityClass.ASYNC: Confidence.MEDIUM,
         IdentityClass.DATA: Confidence.LOW,
