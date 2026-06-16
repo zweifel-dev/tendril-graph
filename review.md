@@ -3,13 +3,16 @@ Tendril-Graph: Full Implementation Plan
 
  Context
 
- M0–M9 are complete with all known gaps resolved. All 175 tests pass (137 prior + 38 new M9 LLM hybrid mode tests).
+ M0–M10 are complete with all known gaps resolved. All 210 tests pass (175 prior M0–M9 + 35 new M10 telemetry cross-validation tests).
  Includes conformance suites for GitHub, Bitbucket DC, TeamCity, Octopus, GitHub Actions, Bitbucket Pipelines, Roslyn
  IntraRepo, and LLM provider/redactor; rung 4 deploy-log harvesting; SC-003-exact end-to-end assertions; golden
  fixture integration test; full query engine + MCP server; CLI graph build wired to TraversalEngine; M8 Roslyn
  IntraRepoProvider with SubprocessBridge; M9 LLM hybrid mode with LLMJudge post-processor, secret redaction,
- residency gate, disk response cache, and three prompt contracts. The spec critique is in
- specs/000-initial-plan/critique-plan.md. This document is the working plan for M10.
+ residency gate, disk response cache, and three prompt contracts; M10 Datadog telemetry cross-validation with
+ CrossValidator three-way reconciliation, DatadogTelemetryProvider (APM/traces/logs/RUM), SERVICE_TAG identity
+ class, FR-023 two-step resolution, evidence deduplication, secret redaction, fixture-mode zero-credential CI,
+ and `tendril telemetry reconcile` CLI command. The spec critique is in
+ specs/000-initial-plan/critique-plan.md.
 
  Package layout: all code lives inside tendril/. Imports use from tendril.X import Y.
  Run tests: .venv/bin/python -m pytest tests/
@@ -41,7 +44,7 @@ Tendril-Graph: Full Implementation Plan
  ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
  │ M9 — LLM hybrid mode                  │ ✅ COMPLETE      │ —                                                             │
  ├───────────────────────────────────────┼──────────────────┼───────────────────────────────────────────────────────────────┤
- │ M10 — Telemetry                       │ ❌ 0%            │ connectors/telemetry/, core/cross_validate.py                 │
+ │ M10 — Telemetry                       │ ✅ COMPLETE      │ —                                                             │
  └───────────────────────────────────────┴──────────────────┴───────────────────────────────────────────────────────────────┘
 
  ---
@@ -127,6 +130,48 @@ Tendril-Graph: Full Implementation Plan
  Created tests/integration/test_hybrid_mode.py (12 integration tests covering SC-001–SC-007: unknowns reduced,
  secret redaction, provenance labels, cache hit, graceful degradation, explain_edge trace, M0–M8 regression guard).
  Total: 175 tests (+38).
+
+ M10: Created tendril/connectors/telemetry/datadog_provider.py (DatadogTelemetryProvider: TelemetryProvider ABC
+ impl; fixture_dir mode; probe() with capability tracking and ProbeRequiredError enforcement;
+ service_dependencies() for APM service map; edges_from_traces() with span_kind=client filtering and
+ peer_service/out_host extraction; edges_from_logs() with structured JSON log parsing (peer.service, http.url
+ hostname, out.host); edges_from_rum() with browser-to-API resource URL extraction; configurable lookback_hours,
+ timeout_seconds, max_results with truncation metadata). Created tendril/connectors/telemetry/tendril-plugin.toml
+ (plugin manifest: id=datadog, family=telemetry, capabilities apm/traces/logs/rum=true).
+ Created tendril/core/cross_validate.py (CrossValidator: three-way static/runtime reconciliation engine;
+ reconcile() 10-step flow: probe → fetch → resolve → deduplicate → static edges → set ops → redact → write →
+ log → return DivergenceReport; _resolve_service_name() FR-023 two-step lookup: SERVICE_TAG exact match then
+ NETWORK hostname-suffix scan; _fetch_static_edges() Cypher query; _write_runtime_edge() upsert with existence
+ check; _deduplicate_edges() merges by (from_id, to_id, env) with evidence sorting; _redact_runtime_edges()
+ applies SecretRedactor patterns; _redact_sensitive_in_string() for Bearer/Basic/api_key/token; evidence locator
+ format validation per FR-021; store-write-error handling per FR-022; >10,000 edge warning per FR-026; INFO
+ reconcile summary per FR-027).
+ Extended tendril/models/ir.py (SERVICE_TAG = "service-tag" in IdentityClass enum; 7 new dataclasses:
+ ResolvedObservedEdge, ConfirmedEdge, StaticOnlyEdge, RuntimeOnlyEdge, UnknownService, DegradationNotice,
+ DivergenceReport with to_dict() serialization). Extended tendril/core/index.py (SERVICE_TAG normalization:
+ strip whitespace, preserve case; SERVICE_TAG confidence: HIGH). Extended tendril/plugins/base.py
+ (ProbeRequiredError exception class). Extended tendril/config.py (DatadogConfig dataclass with api_key,
+ app_key, site, timeout_seconds, lookback_hours, max_results; is_complete()/missing_fields(); load_datadog_config()
+ factory: DD_API_KEY/DD_APP_KEY/DD_SITE env vars > [telemetry.datadog] TOML > defaults).
+ Extended tendril/cli/main.py (tendril telemetry reconcile --env <env> [--db <path>] [--fixture-dir <path>]
+ subcommand with JSON stdout output; automatic telemetry reconcile at end of graph build when DD creds present or
+ telemetry/datadog fixture subdir exists).
+ Created 9 fixture files in tests/fixtures/conformance/telemetry/datadog/: capabilities_prod.json (all true),
+ capabilities_logs_only.json, capabilities_none.json, service_dependencies_prod.json (3 APM edges),
+ edges_from_traces_prod.json (2 client spans), edges_from_logs_prod.json (2 structured log entries),
+ edges_from_rum_prod.json (2 browser-to-API RUM resources), service_dependencies_staging.json (2 edges),
+ edges_from_logs_prod_with_pii.json (PII redaction test data).
+ Created tests/conformance/telemetry/test_datadog_conformance.py (6 tests extending ConformanceTelemetryProvider).
+ Created tests/unit/test_datadog_provider.py (11 unit tests: identity, probe variants, service_dependencies,
+ ProbeRequiredError, edges_from_traces/logs/rum, missing fixture, config validation).
+ Created tests/unit/test_cross_validator.py (9 unit tests: SC-001 reconcile, SC-005 unknown service, SC-006
+ dedup/evidence sorting, FR-024 empty static graph, FR-005/017 static_only preservation, missing credentials,
+ evidence redaction, PII log lines skipped, ambiguous match). Created tests/integration/test_telemetry_reconcile.py
+ (9 integration tests: runtime edge store write, explain_edge observed provenance, logs-only capability, all four
+ signals, find_relevant_repos with runtime edge, no-credentials fixture mode, CLI telemetry reconcile, graph build
+ auto-reconcile, all-capabilities-error degradation).
+ Updated docs/architecture.md (CrossValidation subgraph in Mermaid diagram; telemetry cross-validation description
+ in How to read it section). Total: 210 tests (+35).
 
  ---
  M5 — Query Layer + MCP Server
@@ -488,61 +533,59 @@ Tendril-Graph: Full Implementation Plan
  explain_edge.
 
  ---
- M10 — Telemetry (Datadog)
+ M10 — Telemetry Cross-Validation (Datadog) — ✅ COMPLETE
 
- Dependencies: M4 (static graph must exist to cross-validate against). M10 is independent of M5–M9.
+ Dependencies: M4 (static graph), M5 (QueryEngine for US4 explain_edge integration).
 
- tendril/connectors/telemetry/datadog.py — DatadogTelemetryProvider
+ tendril/connectors/telemetry/datadog_provider.py — DatadogTelemetryProvider
 
  class DatadogTelemetryProvider(TelemetryProvider):
-     def __init__(self, api_key: str, app_key: str, site: str = "datadoghq.com",
-                  fixture_dir: Path | None = None): ...
-
+     def __init__(self, fixture_dir: Path | None = None,
+                  lookback_hours: int = 24, timeout_seconds: int = 60,
+                  max_results: int = 1000): ...
+     def id(self) -> str: return "datadog"
      def probe(self, env: str) -> Capabilities:
-         # Check which Datadog products are enabled: APM, Logs, RUM
-         # Return {"apm": True, "logs": False, "rum": True, ...}
-
+         # Loads capabilities_{env}.json in fixture mode; tracks probed envs;
+         # ProbeRequiredError enforced if data methods called without probe
      def service_dependencies(self, env: str) -> list[ObservedEdge]:
-         # Datadog APM service map: GET /api/v1/service_dependencies
-         # Returns ObservedEdge(from_service, to_service, env, capability="http")
-
+         # APM service map → ObservedEdge with capability="apm"
      def edges_from_traces(self, env: str) -> list[ObservedEdge]:
-         # DDtrace span search: aggregate caller→callee pairs
-
+         # Filters span_kind=client; extracts peer_service/out_host → capability="traces"
      def edges_from_logs(self, env: str) -> list[ObservedEdge]:
-         # Log pattern: parse structured logs for outbound HTTP calls
-
+         # Parses peer.service, http.url hostname, out.host → capability="logs"
      def edges_from_rum(self, env: str) -> list[ObservedEdge]:
-         # RUM resources: extract XHR/fetch calls to external services
+         # Extracts browser-to-API pairs from RUM resource URLs → capability="rum"
 
  tendril/core/cross_validate.py — CrossValidator
 
- Three-way reconciliation between static graph, CI/CD attribution, and runtime telemetry:
+ Three-way reconciliation: probe → fetch from active capabilities → resolve service names to repo_ids
+ (FR-023 two-step: SERVICE_TAG exact match, then NETWORK hostname-suffix) → deduplicate edges (FR-010)
+ → compute confirmed/static_only/runtime_only sets → redact evidence (FR-013) → write runtime_only
+ to graph store with provenance=observed → return DivergenceReport.
 
  class CrossValidator:
-     def __init__(self, store: GraphStore, telemetry: TelemetryProvider): ...
+     def __init__(self, store: GraphStore, provider: TelemetryProvider,
+                  reverse_index: ReverseIndex, redactor: Any | None = None): ...
+     def reconcile(self, env: str) -> DivergenceReport: ...
 
-     def reconcile(self, env: str) -> DivergenceReport:
-         static = self._get_static_edges(env)       # DEPENDS_ON from Kùzu
-         runtime = self.telemetry.service_dependencies(env)  # ObservedEdge[]
+ Key implementation details:
+ - Probe-failure → all capabilities inactive, WARNING log, continue (FR-003)
+ - Per-capability error handling → DegradationNotice in metadata (FR-008)
+ - Evidence locator format: datadog:{capability}:{env}:{api_path}@{iso_timestamp} (FR-021)
+ - Idempotent upsert: checks for existing observed edge before writing (FR-020)
+ - Store-write errors logged at ERROR, recorded in metadata, don't fail run (FR-022)
+ - Secret redaction: Bearer tokens, API keys, PII patterns stripped from evidence (FR-013)
 
-         static_set = {(e.from_id, e.to_id) for e in static}
-         runtime_set = {(e.from_service, e.to_service) for e in runtime}
+ CLI: `tendril telemetry reconcile --env <env> [--db <path>] [--fixture-dir <path>]`
+ Auto-reconcile at end of `tendril graph build` when DD creds present.
 
-         return DivergenceReport(
-             confirmed=static_set & runtime_set,          # static ∩ runtime
-             static_only=static_set - runtime_set,        # declared but no traffic
-             runtime_only=runtime_set - static_set,       # traffic but no declaration ← alert
-             env=env,
-         )
+ Models added to tendril/models/ir.py: SERVICE_TAG identity class, ResolvedObservedEdge, ConfirmedEdge,
+ StaticOnlyEdge, RuntimeOnlyEdge, UnknownService, DegradationNotice, DivergenceReport.
 
- runtime_only edges are the most actionable: undeclared dependencies that are actually in use, invisible to the static
- graph. These get persisted as DEPENDS_ON edges with provenance=Provenance.OBSERVED and confidence=Confidence.HIGH.
+ Config: DatadogConfig in tendril/config.py (DD_API_KEY/DD_APP_KEY/DD_SITE env vars > TOML > defaults).
 
- M10 acceptance
-
- Given a Datadog fixture with 3 APM service edges (2 matching static graph, 1 unknown), reconcile(env="prod") returns a
- report with confirmed length 2, runtime_only length 1. The runtime-only edge is written to Kùzu with provenance=observed.
+ Tests: 6 conformance + 11 unit (provider) + 9 unit (cross-validator) + 9 integration = 35 new tests.
+ All SC-001 through SC-011 pass. All 175 existing M0–M9 tests unaffected. Total: 210 tests.
 
  ---
  Dependency Graph
@@ -551,31 +594,33 @@ Tendril-Graph: Full Implementation Plan
                                                │
                                ┌───────────────┼────────────────┐
                                │               │                │
-                            [M5]            [M6]            [M10]
+                            [M5 ✅]         [M6 ✅]         [M10 ✅]
                                │               │
-                            [M7]            [M8]
+                            [M7 ✅]         [M8 ✅]
                                │               │
-                            [M9 depends on M4+M5 for judge loop]
+                            [M9 ✅ depends on M4+M5 for judge loop]
 
- Recommended build order: M6 → M5 → M7 → M8 → M9 → M10
+ Build order used: M6 → M5 → M7 → M8 → M9 → M10
 
- M6 (golden fixtures) before M5 (query layer) because the query tests need the golden fixture as their seed data.
+ All milestones complete. 210 tests pass with zero credentials required.
 
  ---
  Verification (full suite, no credentials)
 
  pip install -e ".[dev]"
 
- # M0-M4 — all 68 tests currently pass
+ # All M0–M10 — 210 tests, zero credentials required
  pytest tests/ -v
 
- # M6 golden fixture (add after creating tests/integration/)
- pytest tests/integration/test_golden_fixture.py -v
+ # M10 telemetry cross-validation only
+ pytest tests/unit/test_datadog_provider.py tests/unit/test_cross_validator.py \
+   tests/conformance/telemetry/ tests/integration/test_telemetry_reconcile.py -v
 
- # M5 query layer (add after creating query/engine.py)
- pytest tests/test_m5_query.py -v
+ # CLI telemetry reconcile (fixture mode)
+ tendril telemetry reconcile --env prod \
+   --fixture-dir tests/fixtures/conformance/telemetry/datadog
 
- # MCP smoke test (manual, after M5)
+ # MCP smoke test (manual)
  tendril serve --mcp --port 8420 &
  curl -s http://localhost:8420/mcp/find_relevant_repos \
    -H 'Content-Type: application/json' \

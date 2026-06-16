@@ -137,7 +137,7 @@ Add a provider without touching core. Implement the relevant interface from [`SP
 
 ## Status
 
-Pre-release / in design. The requirements (`specs/000-initial-plan/PRD.md`) and spec (`specs/000-initial-plan/SPEC.md`) are stable enough to build from; `specs/000-initial-plan/prompt.md` is the Claude Code handoff that turns them into an implementation plan. Track progress against the phased roadmap in [PRD §10](PRD.md).
+**M0–M10 complete.** All 210 tests pass with zero external credentials (fixture-mode CI). The full vertical slice is working end-to-end: VCS connectors (GitHub, Bitbucket DC), CI/CD connectors (TeamCity, Octopus, GitHub Actions, Bitbucket Pipelines), extractors (DotNet, composition, IaC), Roslyn intra-repo analysis (M8), LLM hybrid mode (M9), and Datadog telemetry cross-validation (M10). The query layer and MCP server expose five agent-facing tools (`find_relevant_repos`, `impact_analysis`, `dependency_path`, `env_diff`, `explain_edge`). See [review.md](review.md) for milestone details and [docs/architecture.md](docs/architecture.md) for the architecture diagram.
 
 ## Contributing
 
