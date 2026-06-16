@@ -1,0 +1,4 @@
+{
+  "main.py": "from fastapi import FastAPI\napp = FastAPI()\n\n@app.get('/health')\ndef health():\n    return {'status': 'ok'}\n",
+  "requirements.txt": "fastapi>=0.100\n"
+}

@@ -1,0 +1,4 @@
+{
+  "appsettings.json": "{\"BaseUrl\": \"\"}",
+  "appsettings.prod.json": "{\"BaseUrl\": \"https://api.prod.example.com\"}"
+}

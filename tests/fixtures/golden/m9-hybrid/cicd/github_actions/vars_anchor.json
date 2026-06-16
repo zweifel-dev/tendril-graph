@@ -1,0 +1,14 @@
+[
+  {
+    "key": "SIDECAR_URL",
+    "value": "https://sidecar.internal",
+    "is_secret": false,
+    "scope": {"env": "prod"}
+  },
+  {
+    "key": "SECRET_TOKEN",
+    "value": "tok_live_abc123",
+    "is_secret": true,
+    "scope": {"env": "prod"}
+  }
+]

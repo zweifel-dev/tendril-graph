@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "service": "auth-service",
+        "attributes": {
+          "peer.service": "user-svc",
+          "http.request.headers.authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.secret_payload"
+        },
+        "message": "User login from john.doe@example.com via +1-555-123-4567",
+        "timestamp": "2026-06-15T10:30:00Z"
+      }
+    },
+    {
+      "attributes": {
+        "service": "payment-gateway",
+        "attributes": {
+          "peer.service": "ledger-svc",
+          "http.url": "https://ledger-svc.internal/api/charge?api_key=sk_live_abc123secret"
+        },
+        "message": "Processing payment for customer",
+        "timestamp": "2026-06-15T10:30:05Z"
+      }
+    }
+  ]
+}

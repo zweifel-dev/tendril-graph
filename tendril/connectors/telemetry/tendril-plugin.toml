@@ -1,0 +1,12 @@
+[plugin]
+id = "datadog"
+family = "telemetry"
+contract_version = "0.1.0"
+
+[capabilities]
+apm = true
+traces = true
+logs = true
+rum = true
+service_catalog = false
+deploy_events = false

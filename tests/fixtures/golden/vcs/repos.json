@@ -1,0 +1,25 @@
+[
+  {
+    "provider": "bitbucket-dc",
+    "org": "acme",
+    "name": "webforms-solution",
+    "url": "https://bb.example.com/acme/webforms-solution",
+    "default_branch": "main"
+  },
+  {
+    "provider": "github",
+    "org": "acme",
+    "name": "landing-page-ui",
+    "url": "https://github.com/acme/landing-page-ui",
+    "default_branch": "main",
+    "homepage": "https://d-ui.prod.example.com"
+  },
+  {
+    "provider": "github",
+    "org": "acme",
+    "name": "landing-page-api",
+    "url": "https://github.com/acme/landing-page-api",
+    "default_branch": "main",
+    "homepage": "https://api.prod.example.com"
+  }
+]

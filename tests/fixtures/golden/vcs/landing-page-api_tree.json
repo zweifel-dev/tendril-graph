@@ -1,0 +1,5 @@
+[
+  {"path": "appsettings.json", "type": "file", "size": 100},
+  {"path": "appsettings.prod.json", "type": "file", "size": 80},
+  {"path": "Api.csproj", "type": "file", "size": 250}
+]

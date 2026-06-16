@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "service": "api-gateway",
+        "attributes": {
+          "peer.service": "database-svc"
+        },
+        "message": "Outbound call to database-svc",
+        "timestamp": "2026-06-15T10:30:00Z"
+      }
+    },
+    {
+      "attributes": {
+        "service": "web-app",
+        "attributes": {
+          "http.url": "https://notification-svc.internal/api/send"
+        },
+        "message": "HTTP POST to notification service",
+        "timestamp": "2026-06-15T10:30:05Z"
+      }
+    }
+  ]
+}

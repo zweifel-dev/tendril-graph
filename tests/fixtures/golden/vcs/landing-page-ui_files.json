@@ -1,0 +1,4 @@
+{
+  "src/index.html": "<html><body><script src='/app.js'></script></body></html>",
+  ".env.production": "REACT_APP_API_URL=https://api.prod.example.com"
+}

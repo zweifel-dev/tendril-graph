@@ -24,10 +24,15 @@ from tendril.models.ir import (
     ResolvedValue,
     ServiceEntity,
     TokenDecl,
+    Unresolved,
     VariableStore,
 )
 
 CONTRACT_VERSION = "1.0.0-alpha"
+
+
+class ProbeRequiredError(RuntimeError):
+    """Raised when a TelemetryProvider data method is called without a prior probe."""
 
 
 # ---------------------------------------------------------------------------
@@ -247,8 +252,23 @@ class IntraRepoProvider(ABC):
     @abstractmethod
     def capabilities(self) -> Capabilities: ...
 
+    def matches(self, repo_tree: list[FileEntry]) -> bool:
+        """Return True if this provider can analyze this repo's file tree.
+
+        Default implementation returns True (opt-in behaviour for existing
+        providers that predate M8). Override to gate on file extensions.
+        FR-M8-013: traversal engine calls this before analyze().
+        """
+        return True
+
     @abstractmethod
     def analyze(self, repo_path: str) -> IntraRepoFacts: ...
 
     @abstractmethod
-    def resolve_value(self, reference: str) -> ResolvedValue: ...
+    def resolve_value(self, repo_path: str, key: str) -> ResolvedValue | Unresolved:
+        """Resolve a single key for the repo at repo_path.
+
+        Returns ResolvedValue on success, Unresolved on any failure.
+        Never raises; never fabricates a value.
+        """
+        ...

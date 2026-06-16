@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "service": "frontend-app",
+        "resource": {
+          "url": "https://api-gateway.internal/api/v1/users"
+        },
+        "type": "xhr"
+      }
+    },
+    {
+      "attributes": {
+        "service": "frontend-app",
+        "resource": {
+          "url": "https://analytics-svc.internal/api/v1/events"
+        },
+        "type": "fetch"
+      }
+    }
+  ]
+}

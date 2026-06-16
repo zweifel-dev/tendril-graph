@@ -1,0 +1,18 @@
+[
+  {
+    "provider": "github",
+    "org": "myorg",
+    "name": "anchor-repo",
+    "default_branch": "main",
+    "url": "https://github.com/myorg/anchor-repo",
+    "homepage": null
+  },
+  {
+    "provider": "github",
+    "org": "myorg",
+    "name": "sidecar-service",
+    "default_branch": "main",
+    "url": "https://github.com/myorg/sidecar-service",
+    "homepage": "https://sidecar.internal"
+  }
+]

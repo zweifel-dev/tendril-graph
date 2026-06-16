@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"from_service": "web-app", "to_service": "api-gateway", "env": "prod"},
+    {"from_service": "web-app", "to_service": "auth-service", "env": "prod"},
+    {"from_service": "web-app", "to_service": "analytics-svc", "env": "prod"}
+  ]
+}

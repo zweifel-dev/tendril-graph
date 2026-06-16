@@ -1,0 +1,4 @@
+{
+  "src/client.py": "import os\nimport requests\n\nSIDECAR_URL = os.environ.get('SIDECAR_URL', 'http://localhost:8080')\n\ndef call_sidecar(path):\n    return requests.get(f'{SIDECAR_URL}/{path}')\n",
+  "requirements.txt": "requests>=2.28\n"
+}

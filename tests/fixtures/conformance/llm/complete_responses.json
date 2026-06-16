@@ -1,0 +1,19 @@
+{
+  "ambiguous_match/v1": {
+    "decision": "ground-to-candidate",
+    "candidate_id": "github:myorg/sidecar-service",
+    "reasoning": "The consumer references 'sidecar-service' via SIDECAR_URL which resolves to https://sidecar.internal. The reverse index confirms github:myorg/sidecar-service exposes that endpoint in prod. Grounding match is unambiguous given the URL pattern."
+  },
+  "unresolved_ref/v1": {
+    "proposed_value": "https://sidecar.internal",
+    "reasoning": "ENV_SIDECAR_URL is injected as SIDECAR_URL in the GitHub Actions variable store with value https://sidecar.internal. This value is present in the evidence and is not a secret. Proposing it as the resolved value."
+  },
+  "identity_class/v1": {
+    "class": "url",
+    "reasoning": "The reference value 'https://sidecar.internal' follows an HTTP URL scheme with a recognisable internal hostname pattern. This is a network-layer identity, not a package, artifact, or async queue reference."
+  },
+  "_malformed_missing_reasoning": {
+    "decision": "ground-to-candidate",
+    "candidate_id": "github:myorg/sidecar-service"
+  }
+}

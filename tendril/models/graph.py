@@ -140,6 +140,7 @@ class DependsOn(EdgeBase):
     candidates: list[str] = field(default_factory=list)
     resolved_via: list[str] = field(default_factory=list)
     unknowns: list[str] = field(default_factory=list)
+    llm_trace: str | None = None  # set only on provenance=llm-judged edges
 
 
 @dataclass
