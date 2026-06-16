@@ -419,12 +419,13 @@ class TestTelemetryReconcileIntegration:
         """
         import json
         import subprocess
+        import sys
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
             result = subprocess.run(
                 [
-                    ".venv/bin/tendril",
+                    sys.executable, "-m", "tendril",
                     "telemetry", "reconcile",
                     "--env", "prod",
                     "--db", f"{tmpdir}/test.db",
@@ -457,12 +458,13 @@ class TestTelemetryReconcileIntegration:
         """
         import json
         import subprocess
+        import sys
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
             result = subprocess.run(
                 [
-                    ".venv/bin/tendril",
+                    sys.executable, "-m", "tendril",
                     "telemetry", "reconcile",
                     "--env", "prod",
                     "--db", f"{tmpdir}/test.db",
