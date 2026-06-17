@@ -336,7 +336,7 @@ def _extract_static_values(extraction: ExtractionResult, env: str) -> dict[str, 
     for ref in extraction.consumer_refs:
         if ref.env_hint and ref.env_hint.lower() == env.lower():
             for token in ref.token_refs:
-                if ref.raw_value and not ref.raw_value.startswith("{"):
+                if ref.raw_value and "{" not in ref.raw_value:
                     values[token] = ref.raw_value
     return values
 

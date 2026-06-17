@@ -186,6 +186,33 @@ class TestSC001UnknownsReduced:
 
 
 # ---------------------------------------------------------------------------
+# T007 — US2: LLM-grounded edge to_id uses repo_full_name format
+# ---------------------------------------------------------------------------
+
+class TestLLMGroundingToIdFormat:
+    def test_llm_edge_to_id_is_repo_full_name(self, tmp_path: Path) -> None:
+        """LLM-grounded edge to_id must match provider:org/name, not a bare slug."""
+        canned = _load_canned()
+        mock_provider = MockLLMProvider(canned)
+        index = _make_index_with_sidecar()
+
+        result = TraversalResult()
+        result.unresolved = [_make_unresolved_item()]
+
+        config = _make_config(str(tmp_path))
+        cache = DiskResponseCache(str(tmp_path))
+        judge = LLMJudge(cache, SecretRedactor(), ResidencyGate())
+        result = judge.run(result, index, mock_provider, config)
+
+        llm_edges = [e for e in result.edges if e.provenance == Provenance.LLM_JUDGED]
+        assert llm_edges, "Expected at least one llm-judged edge"
+        for edge in llm_edges:
+            # to_id must be in provider:org/name format (e.g. github:myorg/sidecar-service)
+            assert ":" in edge.to_id, f"to_id '{edge.to_id}' missing provider prefix"
+            assert "/" in edge.to_id, f"to_id '{edge.to_id}' missing org/name separator"
+
+
+# ---------------------------------------------------------------------------
 # T025 / T026 — US3: endpoint error and no-config graceful degradation
 # ---------------------------------------------------------------------------
 

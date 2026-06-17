@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,8 @@ from tendril.models.ir import (
     VarEntry,
     VariableStore,
 )
+from tendril.config import HTTPConfig
+from tendril.connectors._http import resilient_get
 from tendril.plugins.base import CICDProvider
 
 logger = logging.getLogger(__name__)
@@ -39,11 +42,13 @@ class OctopusProvider(CICDProvider):
         api_key: str,
         space: str,
         fixture_dir: Path | None = None,
+        http_config: HTTPConfig | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._space = space
         self._fixture_dir = fixture_dir
+        self._http_config = http_config or HTTPConfig()
         self._config_as_code: bool | None = None  # probed lazily
 
     # ------------------------------------------------------------------
@@ -79,15 +84,14 @@ class OctopusProvider(CICDProvider):
                 return json.load(fh)
 
         url = f"{self._base_url}{path}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "X-Octopus-ApiKey": self._api_key,
-                "Accept": "application/json",
-            },
-        )
-        with urllib.request.urlopen(req) as resp:  # noqa: S310 — read-only
-            return json.loads(resp.read().decode("utf-8"))
+        headers = {
+            "X-Octopus-ApiKey": self._api_key,
+            "Accept": "application/json",
+        }
+        result = resilient_get(url, headers=headers, config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return json.loads(result.body.decode("utf-8"))
 
     def _get_text(self, path: str, *, fixture_key: str | None = None) -> str:
         """Fetch plain text (e.g. task logs)."""
@@ -103,15 +107,14 @@ class OctopusProvider(CICDProvider):
             return ""
 
         url = f"{self._base_url}{path}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "X-Octopus-ApiKey": self._api_key,
-                "Accept": "text/plain",
-            },
-        )
-        with urllib.request.urlopen(req) as resp:  # noqa: S310
-            return resp.read().decode("utf-8")
+        headers = {
+            "X-Octopus-ApiKey": self._api_key,
+            "Accept": "text/plain",
+        }
+        result = resilient_get(url, headers=headers, config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return result.body.decode("utf-8")
 
     # ------------------------------------------------------------------
     # CICDProvider interface

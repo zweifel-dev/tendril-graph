@@ -172,4 +172,4 @@ def _path_matches_env(path_row: dict[str, Any], env: str) -> bool:
         if isinstance(value, dict):
             if value.get("env") == env:
                 return True
-    return True  # can't determine — include by default
+    return False  # no node matched the requested env — exclude

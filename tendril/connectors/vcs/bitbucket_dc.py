@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+import logging
 import urllib.request
 import urllib.error
 from pathlib import Path
 from typing import Any
 
+from tendril.config import HTTPConfig
+from tendril.connectors._http import resilient_get
 from tendril.models.ir import Capabilities, FileEntry, RepoRef
 from tendril.plugins.base import VCSProvider
+
+logger = logging.getLogger(__name__)
 
 
 class BitbucketDCProvider(VCSProvider):
@@ -19,10 +24,12 @@ class BitbucketDCProvider(VCSProvider):
         base_url: str,
         token: str,
         fixture_dir: Path | None = None,
+        http_config: HTTPConfig | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._token = token
         self._fixture_dir = fixture_dir
+        self._http_config = http_config or HTTPConfig()
 
     def id(self) -> str:
         return "bitbucket-dc"
@@ -74,13 +81,18 @@ class BitbucketDCProvider(VCSProvider):
         while True:
             data = self._get(
                 f"/rest/api/1.0/projects/{repo.org}/repos/{repo.name}"
-                f"/files/{ref}?start={start}&limit=1000",
+                f"/files?at={ref}&start={start}&limit=1000",
             )
             for path in data.get("values", []):
                 files.append(FileEntry(path=path))
             if data.get("isLastPage", True):
                 break
             start = data.get("nextPageStart", start + 1000)
+        if len(files) > 10_000:
+            logger.warning(
+                "Bitbucket DC returned %d files for %s/%s — consider narrowing scope",
+                len(files), repo.org, repo.name,
+            )
         return files
 
     def read_file(self, repo: RepoRef, ref: str, path: str) -> bytes:
@@ -91,9 +103,10 @@ class BitbucketDCProvider(VCSProvider):
             f"{self._base_url}/rest/api/1.0/projects/{repo.org}"
             f"/repos/{repo.name}/raw/{path}?at={ref}"
         )
-        req = urllib.request.Request(url, headers=self._headers())
-        with urllib.request.urlopen(req) as resp:
-            return resp.read()
+        result = resilient_get(url, headers=self._headers(), config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return result.body
 
     def default_branch(self, repo: RepoRef) -> str:
         if self._fixture_dir is not None:
@@ -115,9 +128,10 @@ class BitbucketDCProvider(VCSProvider):
 
     def _get(self, path: str) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
-        req = urllib.request.Request(url, headers=self._headers())
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
+        result = resilient_get(url, headers=self._headers(), config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return json.loads(result.body)
 
     # -- Fixture helpers ------------------------------------------------------
 

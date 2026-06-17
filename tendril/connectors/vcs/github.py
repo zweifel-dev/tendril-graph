@@ -9,6 +9,8 @@ import urllib.error
 from pathlib import Path
 from typing import Any
 
+from tendril.config import HTTPConfig
+from tendril.connectors._http import resilient_get
 from tendril.models.ir import Capabilities, FileEntry, RepoRef
 from tendril.plugins.base import VCSProvider
 
@@ -21,9 +23,11 @@ class GitHubProvider(VCSProvider):
         self,
         token: str,
         fixture_dir: Path | None = None,
+        http_config: HTTPConfig | None = None,
     ) -> None:
         self._token = token
         self._fixture_dir = fixture_dir
+        self._http_config = http_config or HTTPConfig()
 
     def id(self) -> str:
         return "github"
@@ -110,9 +114,10 @@ class GitHubProvider(VCSProvider):
 
     def _get(self, path: str) -> Any:
         url = f"{_BASE_URL}{path}"
-        req = urllib.request.Request(url, headers=self._headers())
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
+        result = resilient_get(url, headers=self._headers(), config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return json.loads(result.body)
 
     # -- Fixture helpers ------------------------------------------------------
 

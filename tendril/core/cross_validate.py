@@ -402,9 +402,37 @@ class CrossValidator:
             {"from_id": edge.from_id, "to_id": edge.to_id, "env": env},
         )
         if existing and existing[0].get("cnt", 0) > 0:
-            # Update evidence on existing edge — Kùzu doesn't support
-            # relationship property updates easily; skip for v0.
-            # The existing edge remains with its original evidence.
+            # Merge new evidence into the existing edge (FR-005).
+            # Strategy: accumulate-and-deduplicate by (locator, capability).
+            old_rows = self._store.query(
+                "MATCH (a:Deployable)-[r:DEPENDS_ON]->(b:Deployable) "
+                "WHERE a.id = $from_id AND b.id = $to_id AND r.env = $env "
+                "AND r.provenance = 'observed' "
+                "RETURN r.evidence AS evidence",
+                {"from_id": edge.from_id, "to_id": edge.to_id, "env": env},
+            )
+            old_evidence: list[str] = []
+            if old_rows:
+                raw = old_rows[0].get("evidence", [])
+                old_evidence = list(raw) if isinstance(raw, list) else [str(raw)] if raw else []
+
+            new_evidence = [str(e) for e in edge.evidence]
+            # Deduplicate by exact string (each str encodes locator+capability)
+            seen: set[str] = set()
+            merged: list[str] = []
+            for item in new_evidence + old_evidence:
+                if item not in seen:
+                    seen.add(item)
+                    merged.append(item)
+
+            self._store.query(
+                "MATCH (a:Deployable)-[r:DEPENDS_ON]->(b:Deployable) "
+                "WHERE a.id = $from_id AND b.id = $to_id AND r.env = $env "
+                "AND r.provenance = 'observed' "
+                "SET r.evidence = $merged",
+                {"from_id": edge.from_id, "to_id": edge.to_id, "env": env,
+                 "merged": merged},
+            )
             return
 
         evidence_strs = [str(e) for e in edge.evidence]

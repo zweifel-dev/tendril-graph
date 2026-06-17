@@ -51,7 +51,7 @@ class GroundingStep:
                 locator = f"index:{env}:{proposed_value}"
                 return GroundingResult(
                     found=True,
-                    matched_identity=entry.deployable_id,
+                    matched_identity=entry.repo_full_name,
                     index_locator=locator,
                     error=None,
                 )

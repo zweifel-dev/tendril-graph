@@ -1,7 +1,7 @@
 [plugin]
 id = "datadog"
 family = "telemetry"
-contract_version = "0.1.0"
+contract_version = "1.0.0-alpha"
 
 [capabilities]
 apm = true

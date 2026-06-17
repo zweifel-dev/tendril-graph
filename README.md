@@ -65,32 +65,50 @@ All credentials are **read-only and least-privilege**, supplied via environment 
 
 ## Quickstart
 
-> ⚠️ Interface below is illustrative of the v0 target (see [PRD §10](specs/000-initial-plan/PRD.md)); commands land as the scaffolding does.
-
 ```bash
-# install (reference distribution)
-Tendril-Graph init
+# install (editable from source)
+python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 
-# register read-only providers (credentials via your secret broker / env)
-Tendril-Graph providers add bitbucket --base-url $BB_BASE_URL --token $BB_TOKEN
-Tendril-Graph providers add github    --app-id $GH_APP_ID --installation $GH_INSTALL
-Tendril-Graph providers add teamcity  --base-url $TC_BASE_URL --token $TC_TOKEN
-Tendril-Graph providers add octopus   --url $OCTO_URL --api-key $OCTO_API_KEY --space $OCTO_SPACE
-# optional:
-Tendril-Graph providers add datadog   --site $DD_SITE
-Tendril-Graph providers add llm       --base-url $LLM_BASE_URL --model $LLM_MODEL --api-key $LLM_API_KEY  # BYOK, gateway-agnostic
+# configure providers via environment variables (or tendril.toml)
+# At minimum, set credentials for one VCS provider:
+export GH_TOKEN="ghp_..."                          # GitHub PAT
+# or Bitbucket DC:
+export BB_BASE_URL="https://bitbucket.example.com"
+export BB_TOKEN="..."
 
-# build the graph from an anchor, for an environment
-# (resolves the deployed SHA for that env from Octopus, reads config at that ref)
-Tendril-Graph graph build --anchor bitbucket:acme/webforms-solution --env prod
+# optional CI/CD providers:
+export TC_BASE_URL="https://teamcity.example.com"  # TeamCity
+export TC_TOKEN="..."
+export OCTO_URL="https://octopus.example.com"      # Octopus Deploy
+export OCTO_API_KEY="API-..."
+export OCTO_SPACE="Spaces-1"
 
-# ask it things — answers carry confidence, provenance, deployed ref, and unknowns
-Tendril-Graph query find-relevant-repos "checkout flow" --env prod --min-confidence medium
-Tendril-Graph query impact bitbucket:acme/landing-page-api --env prod
-Tendril-Graph query explain-edge <edge-id>      # full evidence + provenance + deployed ref
+# optional telemetry & LLM:
+export DD_API_KEY="..." DD_APP_KEY="..." DD_SITE="datadoghq.com"
+export TENDRIL_LLM_ENDPOINT="..." TENDRIL_LLM_MODEL="..." TENDRIL_LLM_API_KEY="..."
 
-# serve to coding agents
-Tendril-Graph serve --mcp
+# build the graph from an anchor repo, for an environment
+# (resolves the deployed SHA for that env, reads config at that ref)
+tendril graph build --anchor bitbucket-dc:acme/webforms-solution --env prod --db ./graph.db
+
+# or use fixture data for offline/CI testing (no credentials needed)
+tendril graph build --anchor bitbucket-dc:acme/webforms-solution --env prod \
+  --fixture-dir tests/fixtures/golden/ --db ./graph.db
+
+# query the graph — answers carry confidence, provenance, deployed ref, and unknowns
+tendril query --db ./graph.db find-relevant-repos --task "checkout flow" --env prod --min-confidence medium
+tendril query --db ./graph.db impact --repo-id bitbucket-dc:acme/landing-page-api --env prod
+tendril query --db ./graph.db explain-edge --from-id bitbucket-dc:acme/webforms-solution \
+  --to-id github:acme/landing-page-ui --env prod
+
+# list registered provider plugins
+tendril providers list
+
+# serve to coding agents via MCP
+tendril serve --mcp --port 8420
+
+# standalone telemetry reconciliation
+tendril telemetry reconcile --env prod --db ./graph.db
 ```
 
 ## Provider support matrix
@@ -137,7 +155,7 @@ Add a provider without touching core. Implement the relevant interface from [`SP
 
 ## Status
 
-**M0–M10 complete.** All 210 tests pass with zero external credentials (fixture-mode CI). The full vertical slice is working end-to-end: VCS connectors (GitHub, Bitbucket DC), CI/CD connectors (TeamCity, Octopus, GitHub Actions, Bitbucket Pipelines), extractors (DotNet, composition, IaC), Roslyn intra-repo analysis (M8), LLM hybrid mode (M9), and Datadog telemetry cross-validation (M10). The query layer and MCP server expose five agent-facing tools (`find_relevant_repos`, `impact_analysis`, `dependency_path`, `env_diff`, `explain_edge`). See [review.md](review.md) for milestone details and [docs/architecture.md](docs/architecture.md) for the architecture diagram.
+**M0–M10 complete + production-readiness hardening (006).** All 267 tests pass with zero external credentials (fixture-mode CI). Live API mode is available (`tendril graph build` without `--fixture-dir`). The full vertical slice is working end-to-end: VCS connectors (GitHub, Bitbucket DC), CI/CD connectors (TeamCity, Octopus, GitHub Actions, Bitbucket Pipelines), extractors (DotNet, composition, IaC), Roslyn intra-repo analysis (M8), LLM hybrid mode (M9), Datadog telemetry cross-validation (M10), and HTTP resilience across all connectors. The query layer and MCP server expose five agent-facing tools (`find_relevant_repos`, `impact_analysis`, `dependency_path`, `env_diff`, `explain_edge`). See [review.md](review.md) for milestone details and [docs/architecture.md](docs/architecture.md) for the architecture diagram.
 
 ## Contributing
 

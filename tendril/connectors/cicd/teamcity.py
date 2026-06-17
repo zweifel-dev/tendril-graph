@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,8 @@ from tendril.models.ir import (
     VarEntry,
     VariableStore,
 )
+from tendril.config import HTTPConfig
+from tendril.connectors._http import resilient_get
 from tendril.plugins.base import CICDProvider
 
 logger = logging.getLogger(__name__)
@@ -39,10 +42,12 @@ class TeamCityProvider(CICDProvider):
         base_url: str,
         token: str,
         fixture_dir: Path | None = None,
+        http_config: HTTPConfig | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._token = token
         self._fixture_dir = fixture_dir
+        self._http_config = http_config or HTTPConfig()
         self._server_version: str | None = None
 
     # ------------------------------------------------------------------
@@ -74,15 +79,14 @@ class TeamCityProvider(CICDProvider):
                 return json.load(fh)
 
         url = f"{self._base_url}{path}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": f"Bearer {self._token}",
-                "Accept": "application/json",
-            },
-        )
-        with urllib.request.urlopen(req) as resp:  # noqa: S310 — read-only
-            return json.loads(resp.read().decode("utf-8"))
+        headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Accept": "application/json",
+        }
+        result = resilient_get(url, headers=headers, config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return json.loads(result.body.decode("utf-8"))
 
     def _get_text(self, path: str, *, fixture_key: str | None = None) -> str:
         """Fetch plain text (e.g. build logs)."""
@@ -100,15 +104,14 @@ class TeamCityProvider(CICDProvider):
             return ""
 
         url = f"{self._base_url}{path}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": f"Bearer {self._token}",
-                "Accept": "text/plain",
-            },
-        )
-        with urllib.request.urlopen(req) as resp:  # noqa: S310
-            return resp.read().decode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Accept": "text/plain",
+        }
+        result = resilient_get(url, headers=headers, config=self._http_config)
+        if not result.ok:
+            raise urllib.error.URLError(result.error or f"HTTP {result.status}")
+        return result.body.decode("utf-8")
 
     def _check_version(self) -> None:
         """Log a warning if the TeamCity version is below the tested minimum."""

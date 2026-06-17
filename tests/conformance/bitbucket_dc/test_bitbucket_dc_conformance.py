@@ -38,3 +38,18 @@ class TestBitbucketDCConformance(ConformanceVCSProvider):
 
     def sample_file_path(self) -> str:
         return "web.config"
+
+    def test_read_tree_includes_nested_paths(self) -> None:
+        """FR-008: read_tree returns files at all directory depths (3+ levels)."""
+        p = self.provider()
+        repo = self.sample_repo()
+        tree = p.read_tree(repo, self.sample_ref())
+        paths = [f.path for f in tree]
+        # Must include files at depth 3 (src/Config/Transforms/*)
+        assert "src/Config/Transforms/web.staging.config" in paths, (
+            f"Nested path not found in tree: {paths}"
+        )
+        # Must include files at depth 2 (src/Services/*)
+        assert "src/Services/ApiClient.cs" in paths
+        # Must still include root-level files
+        assert "web.config" in paths

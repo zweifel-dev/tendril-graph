@@ -64,7 +64,7 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/tendril providers list
 ```
 
-**Package layout note:** All implementation packages (`cli/`, `core/`, `models/`, etc.) live at the project root as flat top-level packages. `tendril/` is a thin shim that provides `python -m tendril` and the console script. `pip install -e .` installs both. `store/schema.py` holds the Kùzu DDL separately from the adapter.
+**Package layout note:** All code lives inside `tendril/` as subpackages (`tendril/cli/`, `tendril/core/`, `tendril/models/`, `tendril/connectors/`, `tendril/store/`, etc.). Imports use `from tendril.X import Y`. `pip install -e .` makes the `tendril` console script and `python -m tendril` available. `store/schema.py` holds the Kùzu DDL separately from the adapter.
 
 ## First milestone (if you're starting the build)
 

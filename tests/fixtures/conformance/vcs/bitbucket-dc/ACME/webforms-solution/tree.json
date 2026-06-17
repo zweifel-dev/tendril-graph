@@ -1,1 +1,1 @@
-["home.aspx", "web.config", "appsettings.prod.json", "WebApp.csproj"]
+["home.aspx", "web.config", "appsettings.prod.json", "WebApp.csproj", "src/Services/ApiClient.cs", "src/Config/appsettings.staging.json", "src/Config/Transforms/web.staging.config"]

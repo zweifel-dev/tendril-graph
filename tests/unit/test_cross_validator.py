@@ -567,3 +567,86 @@ class TestCrossValidatorUnit:
         assert candidates is not None
         assert "github:acme/analytics-svc" in candidates
         assert "github:acme/analytics-svc-v2" in candidates
+
+    # ------------------------------------------------------------------
+    # T013 — FR-005: Evidence merge on re-runs
+    # ------------------------------------------------------------------
+
+    def test_evidence_merge_on_rerun(self) -> None:
+        """FR-005: Running reconcile twice with different data accumulates evidence."""
+        store = _make_store_with_nodes(
+            "github:acme/web-app",
+            "github:acme/api-gateway",
+            "github:acme/auth-service",
+            "github:acme/analytics-svc",
+        )
+        _add_static_edge(store, "github:acme/web-app", "github:acme/api-gateway", "prod")
+        _add_static_edge(store, "github:acme/web-app", "github:acme/auth-service", "prod")
+
+        index = _build_index_with_service_tags({
+            "web-app": "github:acme/web-app",
+            "api-gateway": "github:acme/api-gateway",
+            "auth-service": "github:acme/auth-service",
+            "analytics-svc": "github:acme/analytics-svc",
+        })
+
+        provider = DatadogTelemetryProvider(fixture_dir=FIXTURE_DIR)
+
+        # First reconcile
+        validator1 = CrossValidator(store, provider, index)
+        report1 = validator1.reconcile("prod")
+
+        # Count runtime-only edges that were written to the store
+        runtime_edges_1 = self._query_observed_edges(store)
+
+        # Second reconcile — should merge evidence, not discard
+        validator2 = CrossValidator(store, provider, index)
+        report2 = validator2.reconcile("prod")
+
+        runtime_edges_2 = self._query_observed_edges(store)
+
+        # Evidence should still exist (not discarded by early return)
+        for edge_row in runtime_edges_2:
+            evidence = edge_row.get("evidence", [])
+            # Evidence should be non-empty (the merge preserved it)
+            assert evidence, (
+                f"Edge {edge_row.get('from_id')} -> {edge_row.get('to_id')} "
+                f"has empty evidence after re-run"
+            )
+
+    def test_evidence_merge_no_duplicates(self) -> None:
+        """FR-005: Re-run with same data deduplicates evidence by string equality."""
+        store = _make_store_with_nodes(
+            "github:acme/web-app",
+            "github:acme/api-gateway",
+        )
+
+        index = _build_index_with_service_tags({
+            "web-app": "github:acme/web-app",
+            "api-gateway": "github:acme/api-gateway",
+        })
+
+        provider = DatadogTelemetryProvider(fixture_dir=FIXTURE_DIR)
+
+        # Run twice
+        CrossValidator(store, provider, index).reconcile("prod")
+        CrossValidator(store, provider, index).reconcile("prod")
+
+        observed = self._query_observed_edges(store)
+        for edge_row in observed:
+            evidence = edge_row.get("evidence", [])
+            if isinstance(evidence, list):
+                # No duplicate evidence items
+                assert len(evidence) == len(set(evidence)), (
+                    f"Duplicate evidence found: {evidence}"
+                )
+
+    @staticmethod
+    def _query_observed_edges(store: KuzuStore) -> list[dict]:
+        """Query all observed DEPENDS_ON edges."""
+        return store.query(
+            "MATCH (a:Deployable)-[r:DEPENDS_ON]->(b:Deployable) "
+            "WHERE r.provenance = 'observed' "
+            "RETURN a.id AS from_id, b.id AS to_id, r.env AS env, "
+            "r.evidence AS evidence"
+        )

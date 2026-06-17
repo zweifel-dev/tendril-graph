@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import Any
 
 try:
     from importlib.metadata import version as _pkg_version
@@ -187,8 +188,9 @@ def _graph_build(args: argparse.Namespace) -> int:  # noqa: C901
     envs = [args.env] if args.env else ["prod"]
 
     if not args.fixture_dir:
-        print("Error: --fixture-dir is required (live API mode not yet implemented)")
-        return 1
+        # Live mode: discover providers from credentials
+        return _graph_build_live(args, anchor, envs)
+
     fixture_dir = Path(args.fixture_dir)
     if not fixture_dir.exists():
         print(f"Error: fixture-dir does not exist: {fixture_dir}")
@@ -436,6 +438,397 @@ def _graph_build(args: argparse.Namespace) -> int:  # noqa: C901
         _tlog_logger.info(
             "Datadog telemetry unconfigured (missing: %s); skipping telemetry pass.", missing
         )
+
+    return 0
+
+
+def _graph_build_live(args: argparse.Namespace, anchor: Any, envs: list[str]) -> int:  # noqa: C901
+    """Live-mode graph build — discover providers from credentials, call real APIs.
+
+    Mirrors the fixture-mode flow in ``_graph_build()`` but populates data
+    structures via provider methods instead of reading JSON files.  Providers
+    with incomplete credentials are skipped with a WARNING (graceful degradation,
+    SPEC.md invariant #5).  If *no* VCS provider is available the run aborts.
+    """
+    import logging
+    from tendril.config import (
+        load_bitbucket_dc_config,
+        load_github_config,
+        load_http_config,
+        load_octopus_config,
+        load_teamcity_config,
+    )
+    from tendril.core.attribution import AttributionEngine
+    from tendril.core.deployed_ref import DeployedRefResolver
+    from tendril.core.environment import EnvironmentCanonicalizer
+    from tendril.core.index import ReverseIndex
+    from tendril.core.resolver import Resolver
+    from tendril.core.traversal import TraversalEngine
+    from tendril.extractors.composition import CompositionExtractor
+    from tendril.extractors.dotnet import DotNetExtractor
+    from tendril.models.ir import (
+        Evidence,
+        FileEntry,
+        IdentityClass,
+        ProviderIdentity,
+        RepoRef,
+        VariableStore,
+    )
+    from tendril.store.kuzu_store import KuzuStore
+
+    log = logging.getLogger(__name__)
+    http_cfg = load_http_config()
+    degradation: list[str] = []
+
+    # ------------------------------------------------------------------
+    # 1. Discover VCS providers from credentials
+    # ------------------------------------------------------------------
+    vcs_providers: list = []
+
+    gh_cfg = load_github_config()
+    if gh_cfg.is_complete():
+        from tendril.connectors.vcs.github import GitHubProvider
+        vcs_providers.append(GitHubProvider(token=gh_cfg.token, http_config=http_cfg))
+        log.info("GitHub VCS provider configured")
+    else:
+        degradation.append(f"GitHub VCS skipped (missing: {', '.join(gh_cfg.missing_fields())})")
+
+    bb_cfg = load_bitbucket_dc_config()
+    if bb_cfg.is_complete():
+        from tendril.connectors.vcs.bitbucket_dc import BitbucketDCProvider
+        vcs_providers.append(BitbucketDCProvider(
+            base_url=bb_cfg.base_url, token=bb_cfg.token, http_config=http_cfg,
+        ))
+        log.info("Bitbucket DC VCS provider configured")
+    else:
+        degradation.append(f"Bitbucket DC VCS skipped (missing: {', '.join(bb_cfg.missing_fields())})")
+
+    if not vcs_providers:
+        print("Error: No VCS provider credentials found.", file=sys.stderr)
+        print("Set GH_TOKEN (GitHub) or BB_BASE_URL + BB_TOKEN (Bitbucket DC),", file=sys.stderr)
+        print("or use --fixture-dir for offline mode.", file=sys.stderr)
+        return 1
+
+    # ------------------------------------------------------------------
+    # 2. Discover CI/CD providers from credentials
+    # ------------------------------------------------------------------
+    cicd_providers: list = []
+
+    tc_cfg = load_teamcity_config()
+    if tc_cfg.is_complete():
+        from tendril.connectors.cicd.teamcity import TeamCityProvider
+        cicd_providers.append(TeamCityProvider(
+            base_url=tc_cfg.base_url, token=tc_cfg.token, http_config=http_cfg,
+        ))
+        log.info("TeamCity CI/CD provider configured")
+    else:
+        degradation.append(f"TeamCity CI/CD skipped (missing: {', '.join(tc_cfg.missing_fields())})")
+
+    octo_cfg = load_octopus_config()
+    if octo_cfg.is_complete():
+        from tendril.connectors.cicd.octopus import OctopusProvider
+        cicd_providers.append(OctopusProvider(
+            base_url=octo_cfg.base_url, api_key=octo_cfg.api_key,
+            space=octo_cfg.space, http_config=http_cfg,
+        ))
+        log.info("Octopus Deploy CI/CD provider configured")
+    else:
+        degradation.append(f"Octopus Deploy skipped (missing: {', '.join(octo_cfg.missing_fields())})")
+
+    if not cicd_providers:
+        degradation.append("No CI/CD providers — edges will lack deploy-plane evidence")
+
+    for notice in degradation:
+        log.warning("Degradation: %s", notice)
+        print(f"Warning: {notice}", file=sys.stderr)
+
+    # ------------------------------------------------------------------
+    # 3. Collect repos from VCS providers
+    # ------------------------------------------------------------------
+    env_canon = EnvironmentCanonicalizer.from_file()
+    canon_envs = [env_canon.canonicalize(e)[0] for e in envs]
+
+    all_repos: list[RepoRef] = []
+    seen_repo_keys: set[str] = set()
+
+    # Determine the anchor org for scoping the list_repos call
+    anchor_scope = {"org": anchor.org}
+
+    for vcs in vcs_providers:
+        try:
+            repos = vcs.list_repos(anchor_scope)
+            for r in repos:
+                key = r.full_name
+                if key not in seen_repo_keys:
+                    all_repos.append(r)
+                    seen_repo_keys.add(key)
+        except Exception as exc:
+            log.warning("VCS provider %s list_repos failed: %s", vcs.id(), exc)
+
+    # Ensure anchor is in the list
+    if anchor.full_name not in seen_repo_keys:
+        all_repos.append(anchor)
+        seen_repo_keys.add(anchor.full_name)
+
+    print(f"Discovered {len(all_repos)} repo(s) from {len(vcs_providers)} VCS provider(s)")
+
+    # ------------------------------------------------------------------
+    # 4. Load trees and wire read_file
+    # ------------------------------------------------------------------
+    repo_trees: dict[str, list[FileEntry]] = {}
+    # Map repo full_name to the VCS provider that owns it
+    repo_vcs_map: dict[str, Any] = {}
+
+    for repo_ref in all_repos:
+        for vcs in vcs_providers:
+            if repo_ref.provider == vcs.id() or (not repo_ref.provider):
+                try:
+                    ref = repo_ref.default_branch or "main"
+                    tree = vcs.read_tree(repo_ref, ref)
+                    repo_trees[repo_ref.name] = tree
+                    repo_vcs_map[repo_ref.full_name] = vcs
+                    break
+                except Exception as exc:
+                    log.debug("read_tree via %s for %s failed: %s", vcs.id(), repo_ref.name, exc)
+
+    def _read_file_live(repo: RepoRef, ref: str, path: str) -> bytes:
+        vcs = repo_vcs_map.get(repo.full_name)
+        if vcs is None:
+            raise FileNotFoundError(f"No VCS provider for {repo.full_name}")
+        return vcs.read_file(repo, ref, path)
+
+    # ------------------------------------------------------------------
+    # 5. Discover CI/CD bindings, deployments, variables
+    # ------------------------------------------------------------------
+    deployments: dict[str, list[dict]] = {}
+    variable_stores: dict[str, list[VariableStore]] = {}
+
+    for repo_ref in all_repos:
+        tree = repo_trees.get(repo_ref.name, [])
+        repo_var_stores: list[VariableStore] = []
+
+        for cicd in cicd_providers:
+            try:
+                bindings = cicd.discover_for_repo(repo_ref, tree)
+            except Exception as exc:
+                log.warning("CI/CD %s discover_for_repo(%s) failed: %s",
+                            cicd.id(), repo_ref.name, exc)
+                continue
+
+            for binding in bindings:
+                pid = binding.pipeline_id
+
+                # Deployment info (Octopus-specific: resolve_deployed_ref)
+                if hasattr(cicd, "resolve_deployed_ref"):
+                    for canon_env in canon_envs:
+                        try:
+                            deployed = cicd.resolve_deployed_ref(pid, canon_env)
+                            if deployed:
+                                deployments.setdefault(repo_ref.name, []).append({
+                                    "EnvironmentName": canon_env,
+                                    "Release": {
+                                        "BuildInformation": [{
+                                            "VcsCommitNumber": deployed.sha,
+                                            "Branch": deployed.branch or "",
+                                        }],
+                                    },
+                                })
+                        except Exception as exc:
+                            log.debug("resolve_deployed_ref failed for %s/%s: %s",
+                                      pid, canon_env, exc)
+
+                # Variable stores
+                for canon_env in canon_envs:
+                    try:
+                        vs = cicd.read_variable_store(pid, canon_env)
+                        repo_var_stores.append(vs)
+                    except Exception as exc:
+                        log.debug("read_variable_store failed for %s/%s: %s",
+                                  pid, canon_env, exc)
+
+        if repo_var_stores:
+            variable_stores[repo_ref.name] = repo_var_stores
+
+    # ------------------------------------------------------------------
+    # 6. Build reverse index from provider identities
+    # ------------------------------------------------------------------
+    index = ReverseIndex()
+
+    for repo_ref in all_repos:
+        tree = repo_trees.get(repo_ref.name, [])
+        for cicd in cicd_providers:
+            try:
+                bindings = cicd.discover_for_repo(repo_ref, tree)
+            except Exception:
+                continue
+            for binding in bindings:
+                for canon_env in canon_envs:
+                    try:
+                        identities = cicd.read_provider_identities(binding.pipeline_id, canon_env)
+                        if identities:
+                            index.add(
+                                deployable_id=repo_ref.name,
+                                repo_full_name=repo_ref.full_name,
+                                identities=identities,
+                            )
+                    except Exception as exc:
+                        log.debug("read_provider_identities failed: %s", exc)
+
+        # Also add repo homepage if available (from VCS provider)
+        if repo_ref.url:
+            for canon_env in canon_envs:
+                index.add(
+                    deployable_id=repo_ref.name,
+                    repo_full_name=repo_ref.full_name,
+                    identities=[
+                        ProviderIdentity(
+                            identity_class=IdentityClass.NETWORK,
+                            value=repo_ref.url,
+                            env=canon_env,
+                            evidence=[Evidence(
+                                source_type="vcs-repo-url",
+                                locator=f"vcs:{repo_ref.provider}:{repo_ref.name}:url",
+                            )],
+                        ),
+                    ],
+                )
+
+    # ------------------------------------------------------------------
+    # 7. Run traversal engine
+    # ------------------------------------------------------------------
+    engine = TraversalEngine(
+        attribution=AttributionEngine(),
+        extractors=[CompositionExtractor(), DotNetExtractor()],
+        resolver=Resolver(),
+        index=index,
+        ref_resolver=DeployedRefResolver(),
+        env_canonicalizer=env_canon,
+        vcs_read_file=_read_file_live,
+    )
+    result = engine.traverse(
+        anchor=anchor,
+        envs=envs,
+        repo_trees=repo_trees,
+        deployments=deployments,
+        variable_stores=variable_stores,
+    )
+
+    # ------------------------------------------------------------------
+    # 8. (Optional) LLM hybrid pass
+    # ------------------------------------------------------------------
+    from tendril.config import _toml as _cfg_toml
+    import os as _os
+    _env_mode = _os.environ.get("TENDRIL_GRAPH_MODE")
+    _effective_mode = _resolve_mode(getattr(args, "mode", None), _cfg_toml(), _env_mode)
+    if _effective_mode == "hybrid":
+        from tendril.config import load_llm_config
+        from tendril.llm.cache import DiskResponseCache
+        from tendril.llm.judge import LLMJudge
+        from tendril.llm.redactor import ResidencyGate, SecretRedactor
+
+        llm_cfg = load_llm_config()
+        if not llm_cfg.is_complete():
+            missing = ", ".join(llm_cfg.missing_fields())
+            log.warning("Hybrid mode requested but LLM config incomplete (missing: %s); "
+                        "falling back to structured mode.", missing)
+            print(f"Warning: LLM config incomplete (missing: {missing}); using structured mode.",
+                  file=sys.stderr)
+        else:
+            from tendril.connectors.llm.openai_provider import OpenAICompatibleProvider
+            llm_provider = OpenAICompatibleProvider(llm_cfg)
+            cache = DiskResponseCache(llm_cfg.cache_path)
+            judge = LLMJudge(cache, SecretRedactor(), ResidencyGate())
+            result = judge.run(result, index, llm_provider, llm_cfg)
+            print(f"LLM hybrid pass complete: {len(result.edges)} edge(s), "
+                  f"{len(result.unresolved)} unresolved ref(s) remaining")
+
+    # ------------------------------------------------------------------
+    # 9. Persist to KuzuStore
+    # ------------------------------------------------------------------
+    store = KuzuStore(args.db)
+    for repo_ref in all_repos:
+        store.upsert_node({
+            "_table": "Repo",
+            "id": repo_ref.full_name,
+            "provider": repo_ref.provider,
+            "org": repo_ref.org,
+            "name": repo_ref.name,
+            "url": repo_ref.url or "",
+            "default_branch": repo_ref.default_branch or "",
+            "last_indexed_ref": "",
+            "last_seen": "",
+        })
+        store.upsert_node({
+            "_table": "Deployable",
+            "id": repo_ref.full_name,
+            "repo_id": repo_ref.full_name,
+            "kind": "service",
+            "name": repo_ref.name,
+        })
+
+    sorted_edges = sorted(result.edges, key=lambda e: (e.from_id, e.to_id, e.env))
+    for edge in sorted_edges:
+        for node_id in (edge.from_id, edge.to_id):
+            node_name = node_id.split("/")[-1] if "/" in node_id else node_id
+            store.upsert_node({
+                "_table": "Deployable",
+                "id": node_id,
+                "repo_id": node_id,
+                "kind": "service",
+                "name": node_name,
+            })
+        store.upsert_edge({
+            "_rel_type": "DEPENDS_ON",
+            "_from_table": "Deployable",
+            "_to_table": "Deployable",
+            "from_id": edge.from_id,
+            "to_id": edge.to_id,
+            "env": edge.env,
+            "provenance": edge.provenance.value,
+            "confidence": edge.confidence.value,
+            "evidence": [str(e) for e in edge.evidence],
+            "deployed_ref": edge.deployed_ref,
+            "ambiguous": edge.ambiguous,
+            "stale": edge.stale,
+            "discovered_at": "",
+            "llm_trace": edge.llm_trace or "",
+        })
+
+    # ------------------------------------------------------------------
+    # 10. Print summary
+    # ------------------------------------------------------------------
+    print(f"Graph build complete (live): {len(result.edges)} edge(s), "
+          f"{len(result.expanded)} repo(s) expanded, "
+          f"{len(result.unresolved)} unresolved ref(s)")
+    for edge in sorted_edges:
+        print(f"  DEPENDS_ON  {edge.from_id} -> {edge.to_id} @{edge.env}"
+              f"  [{edge.provenance.value}|{edge.confidence.value}]"
+              f"  sha={edge.deployed_ref}")
+    if result.unresolved:
+        for u in result.unresolved:
+            print(f"  UNRESOLVED  {u}")
+    if degradation:
+        print(f"  ({len(degradation)} degradation notice(s) — see stderr)")
+
+    # ------------------------------------------------------------------
+    # 11. (Optional) Telemetry reconcile
+    # ------------------------------------------------------------------
+    from tendril.config import load_datadog_config
+    from tendril.connectors.telemetry.datadog_provider import DatadogTelemetryProvider
+    from tendril.core.cross_validate import CrossValidator
+
+    dd_cfg = load_datadog_config()
+    if dd_cfg.is_complete():
+        dd_provider = DatadogTelemetryProvider()
+        cross_val = CrossValidator(store, dd_provider, index)
+        for canon_env in canon_envs:
+            report = cross_val.reconcile(canon_env)
+            print(f"Telemetry reconcile ({canon_env}): confirmed={len(report.confirmed)}, "
+                  f"static_only={len(report.static_only)}, runtime_only={len(report.runtime_only)}, "
+                  f"unknowns={len(report.unknowns)}", file=sys.stderr)
+    else:
+        missing = ", ".join(dd_cfg.missing_fields())
+        log.info("Datadog telemetry unconfigured (missing: %s); skipping.", missing)
 
     return 0
 
